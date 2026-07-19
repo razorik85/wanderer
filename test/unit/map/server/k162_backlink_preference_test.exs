@@ -14,6 +14,7 @@ defmodule WandererApp.Map.Server.K162BacklinkPreferenceTest do
 
   alias WandererApp.Api.{MapSystem, MapSystemSignature}
   alias WandererApp.Map.Server.SignaturesImpl
+  alias WandererApp.Map.Server.ConnectionsImpl
   alias WandererAppWeb.Factory
 
   setup :verify_on_exit!
@@ -78,8 +79,7 @@ defmodule WandererApp.Map.Server.K162BacklinkPreferenceTest do
           type: "H296",
           group: "Wormhole",
           linked_system_id: 30_000_143,
-          custom_info:
-            Jason.encode!(%{"time_status" => 1, "mass_status" => 1, "destType" => nil})
+          custom_info: Jason.encode!(%{"time_status" => 1, "mass_status" => 1, "destType" => nil})
         })
 
       # find_forward_signature looks in the target system (system_b.id)
@@ -126,6 +126,27 @@ defmodule WandererApp.Map.Server.K162BacklinkPreferenceTest do
 
       result = SignaturesImpl.find_forward_signature(system_a.id, 30_000_143)
       assert is_nil(result)
+    end
+  end
+
+  describe "wormhole type resolution" do
+    test "uses the forward type for a K162 back-link" do
+      assert SignaturesImpl.resolve_connection_wormhole_type("K162", %{type: "B047"}) ==
+               "B047"
+    end
+
+    test "does not replace a useful type with K162" do
+      assert ConnectionsImpl.resolve_wormhole_type_from_signatures("B047", ["K162"]) ==
+               "B047"
+    end
+
+    test "recovers a missing historical connection type from linked signatures" do
+      assert ConnectionsImpl.resolve_wormhole_type_from_signatures(nil, ["K162", "B047"]) ==
+               "B047"
+    end
+
+    test "keeps the type unknown when only K162 is available" do
+      assert ConnectionsImpl.resolve_wormhole_type_from_signatures(nil, ["K162"]) == nil
     end
   end
 

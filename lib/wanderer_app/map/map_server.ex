@@ -90,6 +90,8 @@ defmodule WandererApp.Map.Server do
 
   defdelegate update_connection_ship_size_type(map_id, connection_info), to: Impl
 
+  defdelegate update_connection_wormhole_type(map_id, connection_info), to: Impl
+
   defdelegate update_connection_locked(map_id, connection_info), to: Impl
 
   defdelegate update_connection_custom_info(map_id, connection_info), to: Impl

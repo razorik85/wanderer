@@ -338,34 +338,33 @@ defmodule WandererApp.Map.Operations.Signatures do
   @spec update_connection_wormhole_type(String.t(), integer(), integer(), String.t() | nil) ::
           :ok | {:error, atom()}
   defp update_connection_wormhole_type(_map_id, _source, _target, nil), do: :ok
+  defp update_connection_wormhole_type(_map_id, _source, _target, ""), do: :ok
+  defp update_connection_wormhole_type(_map_id, _source, _target, "K162"), do: :ok
 
   defp update_connection_wormhole_type(map_id, source_system_id, target_system_id, wormhole_type) do
-    # Get ship size from wormhole type
     ship_size_type = EVEUtil.get_wh_size(wormhole_type)
 
+    :ok =
+      Server.update_connection_wormhole_type(map_id, %{
+        solar_system_source_id: source_system_id,
+        solar_system_target_id: target_system_id,
+        wormhole_type: wormhole_type
+      })
+
     if not is_nil(ship_size_type) do
-      case Server.update_connection_ship_size_type(map_id, %{
-             solar_system_source_id: source_system_id,
-             solar_system_target_id: target_system_id,
-             ship_size_type: ship_size_type
-           }) do
-        :ok ->
-          Logger.info(
-            "[create_signature] Updated connection #{source_system_id} <-> #{target_system_id} ship_size_type to #{ship_size_type} (wormhole: #{wormhole_type})"
-          )
-
-          :ok
-
-        error ->
-          Logger.warning(
-            "[update_connection_wormhole_type] Failed to update ship size: #{inspect(error)}"
-          )
-
-          {:error, :ship_size_update_failed}
-      end
-    else
-      :ok
+      :ok =
+        Server.update_connection_ship_size_type(map_id, %{
+          solar_system_source_id: source_system_id,
+          solar_system_target_id: target_system_id,
+          ship_size_type: ship_size_type
+        })
     end
+
+    Logger.info(
+      "[update_connection_wormhole_type] Updated connection #{source_system_id} <-> #{target_system_id} to #{wormhole_type}"
+    )
+
+    :ok
   end
 
   @spec update_signature(Plug.Conn.t(), String.t(), map()) :: {:ok, map()} | {:error, atom()}
@@ -529,16 +528,21 @@ defmodule WandererApp.Map.Operations.Signatures do
         # Update connection ship_size_type from signature wormhole type
         signature_ship_size_type = EVEUtil.get_wh_size(signature.type)
 
+        connection_wormhole_type =
+          Server.SignaturesImpl.resolve_connection_wormhole_type(signature.type, nil)
+
         # Back-link detection: if current signature yields no ship_size_type (e.g., K162),
         # look for a forward signature in the target system that links back to our source
-        {signature_time_status, signature_ship_size_type, signature_mass_status} =
+        {signature_time_status, signature_ship_size_type, signature_mass_status,
+         connection_wormhole_type} =
           if is_nil(signature_ship_size_type) do
             case Server.SignaturesImpl.find_forward_signature(
                    target_system.id,
                    source_system.solar_system_id
                  ) do
               nil ->
-                {signature_time_status, signature_ship_size_type, signature_mass_status}
+                {signature_time_status, signature_ship_size_type, signature_mass_status,
+                 connection_wormhole_type}
 
               forward_sig ->
                 Logger.info(
@@ -565,11 +569,27 @@ defmodule WandererApp.Map.Operations.Signatures do
                     {signature_time_status, signature_mass_status}
                   end
 
-                {forward_time_status, forward_ship_size, forward_mass_status}
+                resolved_wormhole_type =
+                  Server.SignaturesImpl.resolve_connection_wormhole_type(
+                    signature.type,
+                    forward_sig
+                  )
+
+                {forward_time_status, forward_ship_size, forward_mass_status,
+                 resolved_wormhole_type}
             end
           else
-            {signature_time_status, signature_ship_size_type, signature_mass_status}
+            {signature_time_status, signature_ship_size_type, signature_mass_status,
+             connection_wormhole_type}
           end
+
+        if not is_nil(connection_wormhole_type) do
+          Server.update_connection_wormhole_type(map_id, %{
+            solar_system_source_id: source_system.solar_system_id,
+            solar_system_target_id: solar_system_target,
+            wormhole_type: connection_wormhole_type
+          })
+        end
 
         if not is_nil(signature_time_status) do
           Server.update_connection_time_status(map_id, %{

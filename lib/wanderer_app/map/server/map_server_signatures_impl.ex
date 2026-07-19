@@ -287,6 +287,7 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
       {:ok, updated} ->
         maybe_update_connection_time_status(map_id, existing, updated)
         maybe_update_connection_mass_status(map_id, existing, updated)
+        maybe_update_connection_wormhole_type(map_id, existing, updated)
         maybe_sync_custom_mass_status_to_connection(map_id, existing, updated)
         :ok
 
@@ -341,6 +342,45 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
 
   defp maybe_update_connection_mass_status(_map_id, _old_sig, _updated_sig), do: :ok
 
+  defp maybe_update_connection_wormhole_type(
+         map_id,
+         %{type: old_type} = _old_sig,
+         %{type: new_type, system_id: system_id, linked_system_id: linked_system_id} =
+           _updated_sig
+       )
+       when not is_nil(linked_system_id) do
+    if old_type != new_type do
+      {:ok, source_system} = MapSystem.by_id(system_id)
+
+      forward_signature =
+        if new_type == "K162" do
+          case WandererApp.Map.find_system_by_location(map_id, %{
+                 solar_system_id: linked_system_id
+               }) do
+            nil ->
+              nil
+
+            target_system ->
+              find_forward_signature(target_system.id, source_system.solar_system_id)
+          end
+        end
+
+      case resolve_connection_wormhole_type(new_type, forward_signature) do
+        nil ->
+          :ok
+
+        wormhole_type ->
+          ConnectionsImpl.update_connection_wormhole_type(map_id, %{
+            solar_system_source_id: source_system.solar_system_id,
+            solar_system_target_id: linked_system_id,
+            wormhole_type: wormhole_type
+          })
+      end
+    end
+  end
+
+  defp maybe_update_connection_wormhole_type(_map_id, _old_sig, _updated_sig), do: :ok
+
   defp maybe_sync_custom_mass_status_to_connection(
          map_id,
          %{custom_info: old_custom_info} = _old_sig,
@@ -378,6 +418,18 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
       Logger.warning("[find_forward_signature] Error: #{inspect(e)}")
       nil
   end
+
+  @doc """
+  Resolves the useful connection type for a signature. K162 has no own mass
+  definition, so a known forward signature takes precedence.
+  """
+  def resolve_connection_wormhole_type("K162", %{type: type})
+      when type not in [nil, "", "K162"],
+      do: type
+
+  def resolve_connection_wormhole_type("K162", _forward_signature), do: nil
+  def resolve_connection_wormhole_type(type, _forward_signature) when type in [nil, ""], do: nil
+  def resolve_connection_wormhole_type(type, _forward_signature), do: type
 
   @doc """
   Wrapper for updating a signature's linked_system_id with logging.

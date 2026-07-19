@@ -255,6 +255,7 @@ defmodule WandererApp.Map.Server.Impl do
   defdelegate update_connection_type(map_id, connection_update), to: ConnectionsImpl
   defdelegate update_connection_mass_status(map_id, connection_update), to: ConnectionsImpl
   defdelegate update_connection_ship_size_type(map_id, connection_update), to: ConnectionsImpl
+  defdelegate update_connection_wormhole_type(map_id, connection_update), to: ConnectionsImpl
   defdelegate update_connection_locked(map_id, connection_update), to: ConnectionsImpl
   defdelegate update_connection_custom_info(map_id, connection_update), to: ConnectionsImpl
   defdelegate update_signatures(map_id, signatures_update), to: SignaturesImpl

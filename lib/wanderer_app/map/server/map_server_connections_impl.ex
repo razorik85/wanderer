@@ -240,7 +240,7 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
            marl_eol_time: connection_mark_eol_time,
            locked_at: locked_at,
            locked_by_name: locked_by_name,
-           wormhole_type: connection.wormhole_type
+           wormhole_type: get_connection_wormhole_type(map_id, connection)
          }}
 
       _ ->
@@ -315,6 +315,53 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
         connection_update
       ),
       do: update_connection(map_id, :update_ship_size_type, [:ship_size_type], connection_update)
+
+  def update_connection_wormhole_type(
+        map_id,
+        connection_update
+      ),
+      do: update_connection(map_id, :update_wormhole_type, [:wormhole_type], connection_update)
+
+  def resolve_wormhole_type_from_signatures(stored_type, signature_types) do
+    if stored_type not in [nil, "", "K162"] do
+      stored_type
+    else
+      Enum.find(signature_types, fn type -> type not in [nil, "", "K162"] end)
+    end
+  end
+
+  defp get_connection_wormhole_type(_map_id, %{wormhole_type: wormhole_type})
+       when wormhole_type not in [nil, "", "K162"],
+       do: wormhole_type
+
+  defp get_connection_wormhole_type(map_id, connection) do
+    signature_types =
+      [
+        {connection.solar_system_source, connection.solar_system_target},
+        {connection.solar_system_target, connection.solar_system_source}
+      ]
+      |> Enum.flat_map(fn {source_id, target_id} ->
+        case WandererApp.Map.find_system_by_location(map_id, %{solar_system_id: source_id}) do
+          nil ->
+            []
+
+          system ->
+            system.id
+            |> WandererApp.Api.MapSystemSignature.by_system_id!()
+            |> Enum.filter(&(&1.linked_system_id == target_id))
+            |> Enum.map(& &1.type)
+        end
+      end)
+
+    resolve_wormhole_type_from_signatures(connection.wormhole_type, signature_types)
+  rescue
+    error ->
+      Logger.warning(
+        "Failed to resolve wormhole type for connection #{connection.id}: #{inspect(error)}"
+      )
+
+      connection.wormhole_type
+  end
 
   def update_connection_locked(
         map_id,
