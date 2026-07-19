@@ -239,7 +239,8 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
          %{
            marl_eol_time: connection_mark_eol_time,
            locked_at: locked_at,
-           locked_by_name: locked_by_name
+           locked_by_name: locked_by_name,
+           wormhole_type: connection.wormhole_type
          }}
 
       _ ->
