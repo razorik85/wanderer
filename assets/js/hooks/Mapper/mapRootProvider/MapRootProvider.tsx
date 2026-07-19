@@ -5,6 +5,7 @@ import {
   CommandLinkSignatureToSystem,
   MapUnionTypes,
   OutCommandHandler,
+  Passage,
   SolarSystemConnection,
   TrackingCharacter,
   UseCharactersCacheData,
@@ -47,6 +48,7 @@ export type MapRootData = MapUnionTypes & {
   selectedSystems: string[];
   selectedConnections: Pick<SolarSystemConnection, 'source' | 'target'>[];
   linkSignatureToSystem: CommandLinkSignatureToSystem | null;
+  passageMassRequired: Passage | null;
   detailedKills: Record<string, DetailedKill[]>;
   showCharacterActivity: boolean;
   characterActivityData: {
@@ -98,6 +100,7 @@ const INITIAL_DATA: MapRootData = {
   },
   isSubscriptionActive: false,
   linkSignatureToSystem: null,
+  passageMassRequired: null,
   mainCharacterEveId: null,
   followingCharacterEveId: null,
   pings: [],

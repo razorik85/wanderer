@@ -34,6 +34,45 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
     )
   end
 
+  def handle_server_event(
+        %{
+          event: :passage_mass_required,
+          payload: %{passage_id: passage_id, character_id: character_id}
+        },
+        %{
+          assigns: %{
+            current_user: current_user,
+            map_id: map_id
+          }
+        } = socket
+      ) do
+    owns_character? =
+      Enum.any?(current_user.characters, fn character ->
+        "#{character.id}" == "#{character_id}"
+      end)
+
+    with true <- owns_character?,
+         {:ok, passage} <- WandererAppWeb.HandlerAuth.authorize_passage(passage_id, map_id),
+         {:ok, character} <- WandererApp.Character.get_character(character_id) do
+      passage =
+        passage
+        |> Map.take([:id, :inserted_at, :mass])
+        |> Map.put(:from, true)
+        |> Map.put(:character, MapEventHandler.map_ui_character_stat(character))
+        |> Map.put(
+          :ship,
+          WandererApp.Character.get_ship(%{
+            ship: passage.ship_type_id,
+            ship_name: passage.ship_name
+          })
+        )
+
+      MapEventHandler.push_map_event(socket, "passage_mass_required", passage)
+    else
+      _ -> socket
+    end
+  end
+
   def handle_server_event(event, socket),
     do: MapCoreEventHandler.handle_server_event(event, socket)
 
@@ -273,7 +312,8 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
           assigns: %{
             map_id: map_id,
             has_tracked_characters?: true,
-            user_permissions: %{update_system: true}
+            current_user: current_user,
+            user_permissions: user_permissions
           }
         } = socket
       ) do
@@ -294,7 +334,18 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
 
     case WandererAppWeb.HandlerAuth.authorize_passage(passage_id, map_id) do
       {:ok, passage} ->
-        WandererApp.Api.MapChainPassages.update_mass(passage, %{mass: mass_value})
+        owns_passage? =
+          Enum.any?(current_user.characters, fn character ->
+            "#{character.id}" == "#{passage.character_id}"
+          end)
+
+        if Map.get(user_permissions, :update_system, false) or owns_passage? do
+          WandererApp.Api.MapChainPassages.update_mass(passage, %{mass: mass_value})
+        else
+          Logger.warning(
+            "update_passage_mass rejected: user does not own passage #{inspect(passage_id)}"
+          )
+        end
 
       {:error, :not_found} ->
         Logger.warning(

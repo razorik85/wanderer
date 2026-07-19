@@ -1,6 +1,7 @@
 import { CommentType, MapOptions, PingData, SystemSignature, UserPermissions } from '@/hooks/Mapper/types';
 import { ActivitySummary, CharacterTypeRaw, TrackingCharacter } from '@/hooks/Mapper/types/character.ts';
 import { SolarSystemConnection } from '@/hooks/Mapper/types/connection.ts';
+import type { Passage } from '@/hooks/Mapper/types/connectionPassages.ts';
 import { DetailedKill, Kill } from '@/hooks/Mapper/types/kills.ts';
 import { RoutesList } from '@/hooks/Mapper/types/routes.ts';
 import { RoutesByCategoryType } from '@/hooks/Mapper/mapRootProvider/types.ts';
@@ -31,6 +32,7 @@ export enum Commands {
   selectSystem = 'select_system',
   selectSystems = 'select_systems',
   linkSignatureToSystem = 'link_signature_to_system',
+  passageMassRequired = 'passage_mass_required',
   signaturesUpdated = 'signatures_updated',
   systemCommentAdded = 'system_comment_added',
   systemCommentRemoved = 'system_comment_removed',
@@ -69,6 +71,7 @@ export type Command =
   | Commands.selectSystems
   | Commands.centerSystem
   | Commands.linkSignatureToSystem
+  | Commands.passageMassRequired
   | Commands.signaturesUpdated
   | Commands.systemCommentAdded
   | Commands.systemCommentRemoved
@@ -139,6 +142,7 @@ export type CommandLinkSignatureToSystem = {
   solar_system_source: number;
   solar_system_target: number;
 };
+export type CommandPassageMassRequired = Passage;
 export type CommandLinkSignaturesUpdated = number;
 export type CommandCommentAdd = {
   solarSystemId: number;
@@ -212,6 +216,7 @@ export interface CommandData {
   [Commands.selectSystems]: CommandSelectSystems;
   [Commands.centerSystem]: CommandCenterSystem;
   [Commands.linkSignatureToSystem]: CommandLinkSignatureToSystem;
+  [Commands.passageMassRequired]: CommandPassageMassRequired;
   [Commands.signaturesUpdated]: CommandLinkSignaturesUpdated;
   [Commands.characterActivityData]: CommandCharacterActivityData;
   [Commands.trackingCharactersData]: CommandTrackingCharactersData;

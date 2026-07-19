@@ -1,6 +1,11 @@
 import { useMapRootState } from '@/hooks/Mapper/mapRootProvider';
 import { useCallback, useRef } from 'react';
-import { CommandAddConnections, CommandRemoveConnections, CommandUpdateConnection } from '@/hooks/Mapper/types';
+import {
+  CommandAddConnections,
+  CommandPassageMassRequired,
+  CommandRemoveConnections,
+  CommandUpdateConnection,
+} from '@/hooks/Mapper/types';
 
 export const useCommandsConnections = () => {
   const {
@@ -33,5 +38,9 @@ export const useCommandsConnections = () => {
     });
   }, []);
 
-  return { addConnections, removeConnections, updateConnection };
+  const requirePassageMass = useCallback((passage: CommandPassageMassRequired) => {
+    ref.current.update({ passageMassRequired: passage });
+  }, []);
+
+  return { addConnections, removeConnections, updateConnection, requirePassageMass };
 };

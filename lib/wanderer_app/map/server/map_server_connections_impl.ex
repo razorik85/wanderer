@@ -656,19 +656,22 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
              location.solar_system_id != old_location.solar_system_id do
     {:ok, character} = WandererApp.Character.get_character(character_id)
 
-    if not is_manual do
-      :telemetry.execute([:wanderer_app, :map, :character, :jump], %{count: 1}, %{})
+    passage =
+      if not is_manual do
+        :telemetry.execute([:wanderer_app, :map, :character, :jump], %{count: 1}, %{})
 
-      {:ok, _} =
-        WandererApp.Api.MapChainPassages.new(%{
-          map_id: map_id,
-          character_id: character_id,
-          ship_type_id: character.ship,
-          ship_name: character.ship_name,
-          solar_system_source_id: old_location.solar_system_id,
-          solar_system_target_id: location.solar_system_id
-        })
-    end
+        {:ok, passage} =
+          WandererApp.Api.MapChainPassages.new(%{
+            map_id: map_id,
+            character_id: character_id,
+            ship_type_id: character.ship,
+            ship_name: character.ship_name,
+            solar_system_source_id: old_location.solar_system_id,
+            solar_system_target_id: location.solar_system_id
+          })
+
+        passage
+      end
 
     case WandererApp.Map.check_connection(map_id, location, old_location) do
       :ok ->
@@ -744,6 +747,8 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
           solar_system_target: location.solar_system_id
         })
 
+        maybe_broadcast_passage_mass_required(map_id, passage, character_id, connection_type)
+
         # ADDITIVE: Also broadcast to external event system (webhooks/WebSocket)
         WandererApp.ExternalEvents.broadcast(map_id, :connection_added, %{
           connection_id: connection.id,
@@ -772,6 +777,19 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
           solar_system_id: location.solar_system_id
         })
 
+        connection_type =
+          if is_connection_valid(
+               :stargates,
+               old_location.solar_system_id,
+               location.solar_system_id
+             ) do
+            @connection_type_stargate
+          else
+            @connection_type_wormhole
+          end
+
+        maybe_broadcast_passage_mass_required(map_id, passage, character_id, connection_type)
+
         :ok
 
       {:error, error} ->
@@ -790,6 +808,27 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
         _connection_extra_info
       ),
       do: :ok
+
+  defp maybe_broadcast_passage_mass_required(
+         map_id,
+         passage,
+         character_id,
+         @connection_type_wormhole
+       )
+       when not is_nil(passage) do
+    Impl.broadcast!(map_id, :passage_mass_required, %{
+      passage_id: passage.id,
+      character_id: character_id
+    })
+  end
+
+  defp maybe_broadcast_passage_mass_required(
+         _map_id,
+         _passage,
+         _character_id,
+         _connection_type
+       ),
+       do: :ok
 
   defp get_extra_info(nil, _key, default_value), do: default_value
 

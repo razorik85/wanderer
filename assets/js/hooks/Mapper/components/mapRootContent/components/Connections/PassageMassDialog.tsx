@@ -1,5 +1,5 @@
 import { WdButton, WdTooltipWrapper } from '@/hooks/Mapper/components/ui-kit';
-import { PassageWithSourceTarget } from '@/hooks/Mapper/types';
+import { Passage } from '@/hooks/Mapper/types';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import clsx from 'clsx';
@@ -9,13 +9,13 @@ import { kgToTons } from '@/hooks/Mapper/utils/kgToTons.ts';
 import { getShipName } from './PassageCard/getShipName.ts';
 
 type PassageMassDialogProps = {
-  passage: PassageWithSourceTarget | null;
+  passage: Passage | null;
   visible: boolean;
   onHide: () => void;
   onSave: (mass: number) => Promise<void> | void;
 };
 
-const getPassageMass = (passage: PassageWithSourceTarget) => {
+const getPassageMass = (passage: Passage) => {
   return passage.mass ?? parseInt(passage.ship.ship_type_info.mass);
 };
 

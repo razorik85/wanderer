@@ -14,6 +14,7 @@ import {
   CommandPingAdded,
   CommandPingBlocked,
   CommandPingCancelled,
+  CommandPassageMassRequired,
   CommandPresentCharacters,
   CommandRemoveConnections,
   CommandRemoveSystems,
@@ -56,7 +57,7 @@ export const useMapRootHandlers = (ref: ForwardedRef<MapHandlers>) => {
     updateLinkSignatureToSystem,
     updateDetailedKills,
   } = useCommandsSystems();
-  const { addConnections, removeConnections, updateConnection } = useCommandsConnections();
+  const { addConnections, removeConnections, updateConnection, requirePassageMass } = useCommandsConnections();
   const { charactersUpdated, characterAdded, characterRemoved, characterUpdated, presentCharacters } =
     useCommandsCharacters();
   const mapUpdated = useMapUpdated();
@@ -92,6 +93,13 @@ export const useMapRootHandlers = (ref: ForwardedRef<MapHandlers>) => {
             break;
           case Commands.updateConnection: // USED
             updateConnection(data as CommandUpdateConnection);
+            break;
+          case Commands.passageMassRequired:
+            // Signature linking is intentionally opened after a short delay above.
+            // Queue the mass prompt just after it so both dialogs never flash at once.
+            setTimeout(() => {
+              requirePassageMass(data as CommandPassageMassRequired);
+            }, 250);
             break;
           case Commands.charactersUpdated: // USED
             charactersUpdated(data as CommandCharactersUpdated);

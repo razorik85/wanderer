@@ -6,7 +6,7 @@ import {
   SystemLinkSignatureDialog,
   SystemSettingsDialog,
 } from '@/hooks/Mapper/components/mapInterface/components';
-import { Connections } from '@/hooks/Mapper/components/mapRootContent/components/Connections';
+import { Connections, PassageMassDialog } from '@/hooks/Mapper/components/mapRootContent/components/Connections';
 import { getSystemById } from '@/hooks/Mapper/helpers';
 import { MapRootData, useMapRootState } from '@/hooks/Mapper/mapRootProvider';
 import { CommandSelectSystems, OutCommand, OutCommandHandler, SolarSystemConnection } from '@/hooks/Mapper/types';
@@ -46,6 +46,7 @@ export const MapWrapper = () => {
       userHubs,
       systems,
       linkSignatureToSystem,
+      passageMassRequired,
       systemSignatures,
     },
     storedSettings: { interfaceSettings, settingsLocal, mapSettings, mapSettingsUpdate },
@@ -75,6 +76,29 @@ export const MapWrapper = () => {
   const [openCustomLabel, setOpenCustomLabel] = useState<string | null>(null);
   const [openAddSystem, setOpenAddSystem] = useState<XYPosition | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<SolarSystemConnection | null>(null);
+
+  const handleHidePassageMassDialog = useCallback(() => {
+    update({ passageMassRequired: null });
+  }, [update]);
+
+  const handleSavePassageMass = useCallback(
+    async (mass: number) => {
+      if (!passageMassRequired) {
+        return;
+      }
+
+      await outCommand({
+        type: OutCommand.updatePassageMass,
+        data: {
+          id: passageMassRequired.id,
+          mass,
+        },
+      });
+
+      update({ passageMassRequired: null });
+    },
+    [outCommand, passageMassRequired, update],
+  );
 
   const ref = useRef({
     selectedConnections,
@@ -306,6 +330,13 @@ export const MapWrapper = () => {
       {linkSignatureToSystem != null && (
         <SystemLinkSignatureDialog data={linkSignatureToSystem} setVisible={() => updateLinkSignatureToSystem(null)} />
       )}
+
+      <PassageMassDialog
+        passage={passageMassRequired}
+        visible={passageMassRequired != null && linkSignatureToSystem == null}
+        onHide={handleHidePassageMassDialog}
+        onSave={handleSavePassageMass}
+      />
 
       <AddSystemDialog
         visible={!!openAddSystem}
