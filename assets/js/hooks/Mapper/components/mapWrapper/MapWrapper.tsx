@@ -93,7 +93,7 @@ export const MapWrapper = () => {
         return;
       }
 
-      await outCommand({
+      const updateRequest = outCommand({
         type: OutCommand.updatePassageMass,
         data: {
           id: passageMassRequired.id,
@@ -103,6 +103,7 @@ export const MapWrapper = () => {
       });
 
       update({ passageMassRequired: null });
+      await updateRequest;
     },
     [outCommand, passageMassRequired, update],
   );

@@ -240,35 +240,44 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
 
       setMassUpdateInFlight(true);
 
+      const updateRequest = outCommand({
+        type: OutCommand.updatePassageMass,
+        data: {
+          id: editingPassage.id,
+          mass,
+          mass_status: massStatus,
+        },
+      });
+
+      // Apply the passage locally before the observed status, matching the
+      // server-side persistence order without waiting for signature broadcasts.
+      const massConfirmedAt = new Date().toISOString();
+
+      setPassages(prev =>
+        prev.map(passage =>
+          passage.id === editingPassage.id ? { ...passage, mass, mass_confirmed_at: massConfirmedAt } : passage,
+        ),
+      );
+
+      if (massStatus != null) {
+        setObservedMassStatusOverride(massStatus);
+      }
+
+      setEditingPassage(prev => (prev ? { ...prev, mass, mass_confirmed_at: massConfirmedAt } : prev));
+      handleHidePassageDialog();
+
       try {
-        await outCommand({
-          type: OutCommand.updatePassageMass,
-          data: {
-            id: editingPassage.id,
-            mass,
-            mass_status: massStatus,
-          },
-        });
-
-        const massConfirmedAt = new Date().toISOString();
-
-        setPassages(prev =>
-          prev.map(passage =>
-            passage.id === editingPassage.id ? { ...passage, mass, mass_confirmed_at: massConfirmedAt } : passage,
-          ),
-        );
-
-        if (massStatus != null) {
-          setObservedMassStatusOverride(massStatus);
+        await updateRequest;
+      } catch {
+        setObservedMassStatusOverride(null);
+        if (selectedConnection) {
+          await Promise.all([loadInfo(selectedConnection), loadPassages(selectedConnection)]);
         }
-
-        setEditingPassage(prev => (prev ? { ...prev, mass, mass_confirmed_at: massConfirmedAt } : prev));
-        handleHidePassageDialog();
       } finally {
         setMassUpdateInFlight(false);
       }
     },
-    [editingPassage, handleHidePassageDialog, outCommand],
+    [editingPassage, handleHidePassageDialog, loadInfo, loadPassages, outCommand, selectedConnection],
   );
 
   if (!cnInfo) {
@@ -401,23 +410,20 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
                     >
                       {massStatus}
                     </span>
-                    {massUpdateInFlight ? (
-                      <span className="col-span-2 text-right text-stone-400">Applying passage before status...</span>
-                    ) : (
+                    <span className="text-stone-400">Observed status</span>
+                    <span className={clsx('text-right', statusColor[observedStatus])}>{observedStatus}</span>
+                    {reconciledRange.compatible &&
+                    reconciledRange.minimum != null &&
+                    reconciledRange.maximum != null ? (
                       <>
-                        <span className="text-stone-400">Observed status</span>
-                        <span className={clsx('text-right', statusColor[observedStatus])}>{observedStatus}</span>
-                        {reconciledRange.compatible &&
-                        reconciledRange.minimum != null &&
-                        reconciledRange.maximum != null ? (
-                          <>
-                            <span className="text-stone-400">Constrained range</span>
-                            <span className="text-right text-emerald-300">
-                              {kgToTons(reconciledRange.minimum)} - {kgToTons(reconciledRange.maximum)}
-                            </span>
-                          </>
-                        ) : null}
+                        <span className="text-stone-400">Constrained range</span>
+                        <span className="text-right text-emerald-300">
+                          {kgToTons(reconciledRange.minimum)} - {kgToTons(reconciledRange.maximum)}
+                        </span>
                       </>
+                    ) : null}
+                    {massUpdateInFlight && (
+                      <span className="col-span-2 text-right text-[11px] text-stone-500">Syncing with server...</span>
                     )}
                   </>
                 ) : (
