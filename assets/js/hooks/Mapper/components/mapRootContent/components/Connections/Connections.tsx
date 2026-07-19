@@ -20,6 +20,13 @@ import { kgToTons } from '@/hooks/Mapper/utils/kgToTons.ts';
 import { PassageCard } from './PassageCard';
 import { PassageMassDialog } from './PassageMassDialog';
 import { calculateMassBalance, MassBalanceStatus, reconcileMassRange } from './calculateMassBalance.ts';
+import {
+  ACTIVE_PASSAGE_HISTORY_MS,
+  calculatePolarizations,
+  formatPolarizationRemaining,
+  isRecentPassage,
+} from './calculatePolarization.ts';
+import { getMassAlerts } from './getMassAlerts.ts';
 
 const sortByDate = (a: string, b: string) => new Date(a).getTime() - new Date(b).getTime();
 
@@ -106,6 +113,14 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
   const [editingPassage, setEditingPassage] = useState<PassageWithSourceTarget | null>(null);
   const [massUpdateInFlight, setMassUpdateInFlight] = useState(false);
   const [observedMassStatusOverride, setObservedMassStatusOverride] = useState<MassState | null>(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  useEffect(() => {
+    if (!selectedConnection) return;
+    setCurrentTime(Date.now());
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 1_000);
+    return () => window.clearInterval(timer);
+  }, [selectedConnection]);
 
   const loadInfo = useCallback(
     async (connection: SolarSystemConnection) => {
@@ -151,6 +166,13 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
       }));
   }, [cnInfo, passages]);
 
+  const visiblePassages = useMemo(
+    () => preparedPassages.filter(passage => isRecentPassage(passage, currentTime)),
+    [currentTime, preparedPassages],
+  );
+
+  const polarizations = useMemo(() => calculatePolarizations(passages, currentTime), [currentTime, passages]);
+
   useEffect(() => {
     if (!selectedConnection) {
       setEditingPassage(null);
@@ -180,8 +202,9 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
     return calculateMassBalance(passages, wormholeNominalMass, {
       massRegenerationPerDay: Number.isFinite(regenerationPerDay) ? regenerationPerDay : 0,
       trackingStartedAt: info?.mass_tracking_started_at,
+      now: new Date(currentTime),
     });
-  }, [info?.mass_tracking_started_at, passages, wormholeData?.mass_regen, wormholeNominalMass]);
+  }, [currentTime, info?.mass_tracking_started_at, passages, wormholeData?.mass_regen, wormholeNominalMass]);
 
   const massStatus = useMemo(() => {
     const { statusMinimum, statusMaximum } = massBalance;
@@ -195,6 +218,17 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
   const reconciledRange = useMemo(() => {
     return reconcileMassRange(massBalance, wormholeNominalMass, effectiveObservedMassStatus);
   }, [effectiveObservedMassStatus, massBalance, wormholeNominalMass]);
+
+  const massAlerts = useMemo(
+    () =>
+      getMassAlerts(
+        massBalance,
+        Number(wormholeData?.max_mass_per_jump) || null,
+        effectiveObservedMassStatus,
+        reconciledRange,
+      ),
+    [effectiveObservedMassStatus, massBalance, reconciledRange, wormholeData?.max_mass_per_jump],
+  );
 
   const unconfirmedPassages = useMemo(() => {
     return passages.filter(passage => passage.mass_confirmed_at == null).length;
@@ -392,11 +426,7 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
                               {kgToTons(reconciledRange.minimum)} - {kgToTons(reconciledRange.maximum)}
                             </span>
                           </>
-                        ) : (
-                          <span className="col-span-2 mt-1 rounded border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-red-300">
-                            Observed status conflicts with the tracked passage mass.
-                          </span>
-                        )}
+                        ) : null}
                       </>
                     )}
                   </>
@@ -427,6 +457,46 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
                   </div>
                 </div>
               )}
+
+              {massAlerts.length > 0 && (
+                <div className="mt-3 flex flex-col gap-1.5">
+                  {massAlerts.map((alert, index) => (
+                    <div
+                      key={`${alert.level}-${index}`}
+                      className={clsx('rounded border px-2 py-1.5', {
+                        'border-sky-500/30 bg-sky-500/10 text-sky-300': alert.level === 'hint',
+                        'border-amber-500/30 bg-amber-500/10 text-amber-300': alert.level === 'warning',
+                        'border-red-500/30 bg-red-500/10 text-red-300': alert.level === 'danger',
+                      })}
+                    >
+                      <span
+                        className={clsx(
+                          'pi mr-1.5',
+                          alert.level === 'hint' ? 'pi-info-circle' : 'pi-exclamation-triangle',
+                        )}
+                      />
+                      {alert.text}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isWormhole && polarizations.length > 0 && (
+            <div className="rounded border border-neutral-700/80 bg-neutral-950/40 p-3 text-xs">
+              <div className="mb-2 font-medium text-stone-200">Polarization</div>
+              <div className="flex flex-col gap-1.5">
+                {polarizations.map(polarization => (
+                  <div key={polarization.characterId} className="flex items-center justify-between gap-3">
+                    <span className="truncate text-stone-300">{polarization.characterName}</span>
+                    <span className={polarization.state === 'polarized' ? 'text-red-400' : 'text-amber-300'}>
+                      {polarization.state === 'polarized' ? 'Polarized' : 'Directional timer'} ·{' '}
+                      {formatPolarizationRemaining(polarization.expiresAt, currentTime)}
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
@@ -434,7 +504,14 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
         {/* separator */}
         <div className="w-full h-px bg-neutral-800 px-0.5"></div>
 
-        <ConnectionPassages passages={preparedPassages} onEditPassage={handleEditPassage} />
+        <div className="flex min-h-0 flex-col">
+          <div className="px-2 py-1 text-[11px] text-stone-500">
+            Passages from the last {ACTIVE_PASSAGE_HISTORY_MS / 60_000} minutes
+          </div>
+          <div className="min-h-0 flex-1">
+            <ConnectionPassages passages={visiblePassages} onEditPassage={handleEditPassage} />
+          </div>
+        </div>
       </div>
 
       <PassageMassDialog
