@@ -329,21 +329,11 @@ defmodule WandererAppWeb.MapCoreEventHandler do
   def handle_ui_event(
         "search_ship_types",
         %{"query" => query},
-        socket
+        %{assigns: %{current_user: current_user}} = socket
       ) do
     ships =
       if is_binary(query) and String.length(String.trim(query)) >= 2 do
-        query
-        |> String.trim()
-        |> then(&WandererApp.Api.ShipTypeInfo.find_by_name!(%{name: &1}))
-        |> Enum.take(20)
-        |> Enum.map(fn ship ->
-          %{
-            ship_type_id: ship.type_id,
-            ship_type_name: ship.name,
-            base_mass_tons: round(parse_mass(ship.mass) / 1_000)
-          }
-        end)
+        search_ship_types(String.trim(query), current_user)
       else
         []
       end
@@ -468,6 +458,64 @@ defmodule WandererAppWeb.MapCoreEventHandler do
   end
 
   defp parse_mass(_), do: 0
+
+  defp search_ship_types(query, current_user) do
+    case Enum.find(current_user.characters, &is_binary(&1.id)) do
+      nil ->
+        []
+
+      character ->
+        with {:ok, %{access_token: access_token, eve_id: eve_id}} <-
+               WandererApp.Character.get_character(character.id),
+             {:ok, result} <-
+               WandererApp.Esi.search(String.to_integer(eve_id),
+                 access_token: access_token,
+                 character_id: character.id,
+                 refresh_token?: true,
+                 params: %{search: query, categories: "inventory_type"}
+               ) do
+          result
+          |> Map.get("inventory_type", [])
+          |> Enum.take(100)
+          |> Task.async_stream(&load_ship_search_result/1,
+            max_concurrency: 10,
+            timeout: 15_000,
+            ordered: false
+          )
+          |> Enum.flat_map(fn
+            {:ok, {:ok, ship}} -> [ship]
+            _ -> []
+          end)
+          |> Enum.sort_by(fn ship ->
+            name = String.downcase(ship.ship_type_name)
+            normalized_query = String.downcase(query)
+            {if(String.starts_with?(name, normalized_query), do: 0, else: 1), name}
+          end)
+          |> Enum.take(20)
+        else
+          error ->
+            Logger.warning("Ship type search failed: #{inspect(error)}")
+            []
+        end
+    end
+  end
+
+  defp load_ship_search_result(type_id) do
+    with {:ok, type_info} <- WandererApp.Esi.get_type_info(type_id),
+         group_id when is_integer(group_id) <- Map.get(type_info, "group_id"),
+         {:ok, group_info} <- WandererApp.Esi.get_group_info(group_id),
+         6 <- Map.get(group_info, "category_id"),
+         name when is_binary(name) <- Map.get(type_info, "name") do
+      {:ok,
+       %{
+         ship_type_id: type_id,
+         ship_type_name: name,
+         base_mass_tons: round(parse_mass(Map.get(type_info, "mass")) / 1_000)
+       }}
+    else
+      _ -> :not_a_ship
+    end
+  end
 
   defp save_default_settings(map_id, settings, current_user) do
     # Find the character to use as actor

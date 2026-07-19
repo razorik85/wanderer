@@ -26,6 +26,7 @@ export const MassTemplatesSettings = () => {
   const [label, setLabel] = useState('');
   const [massTons, setMassTons] = useState('');
   const [searching, setSearching] = useState(false);
+  const [searchAttempted, setSearchAttempted] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -43,12 +44,19 @@ export const MassTemplatesSettings = () => {
   const search = async () => {
     if (query.trim().length < 2) return;
     setSearching(true);
+    setSearchAttempted(false);
+    setMessage(null);
     try {
       const response = await outCommand<{ ships: ShipSearchResult[] }>({
         type: OutCommand.searchShipTypes,
         data: { query: query.trim() },
       });
       setResults(response.ships ?? []);
+      setSearchAttempted(true);
+    } catch {
+      setResults([]);
+      setSearchAttempted(true);
+      setMessage('Ship search failed. Please try again.');
     } finally {
       setSearching(false);
     }
@@ -120,12 +128,19 @@ export const MassTemplatesSettings = () => {
             onChange={event => {
               setQuery(event.target.value);
               setSelectedShip(null);
+              setSearchAttempted(false);
             }}
             onKeyDown={event => event.key === 'Enter' && search()}
             placeholder="Search ship, e.g. Praxis"
             className="min-w-0 flex-1"
           />
-          <WdButton outlined size="small" label={searching ? 'Searching...' : 'Search'} onClick={search} />
+          <WdButton
+            outlined
+            size="small"
+            label={searching ? 'Searching...' : 'Search'}
+            disabled={searching || query.trim().length < 2}
+            onClick={search}
+          />
         </div>
 
         {results.length > 0 && (
@@ -141,6 +156,12 @@ export const MassTemplatesSettings = () => {
                 <span className="text-stone-500">Base {new Intl.NumberFormat().format(ship.base_mass_tons)} t</span>
               </button>
             ))}
+          </div>
+        )}
+
+        {searchAttempted && results.length === 0 && !selectedShip && (
+          <div className="mt-2 rounded border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">
+            No matching ship types found.
           </div>
         )}
 
