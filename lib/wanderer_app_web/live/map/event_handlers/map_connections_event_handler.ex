@@ -307,7 +307,7 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
 
   def handle_ui_event(
         "update_passage_mass",
-        %{"id" => passage_id, "mass" => mass} = _event,
+        %{"id" => passage_id, "mass" => mass} = event,
         %{
           assigns: %{
             map_id: map_id,
@@ -319,16 +319,29 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
       ) do
     mass_value =
       cond do
-        is_integer(mass) ->
+        is_integer(mass) and mass > 0 ->
           mass
 
         is_binary(mass) ->
           case Integer.parse(mass) do
-            {int_val, _} -> int_val
+            {int_val, ""} when int_val > 0 -> int_val
             :error -> nil
+            _ -> nil
           end
 
         true ->
+          nil
+      end
+
+    mass_status =
+      case Map.get(event, "mass_status") do
+        status when status in [0, 1, 2] ->
+          status
+
+        status when is_binary(status) ->
+          if status in ["0", "1", "2"], do: String.to_integer(status)
+
+        _ ->
           nil
       end
 
@@ -350,10 +363,21 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
               }
             end
 
-          WandererApp.Api.MapChainPassages.update_mass(
-            passage,
-            Map.put(confirmation, :mass, mass_value)
-          )
+          case WandererApp.Api.MapChainPassages.update_mass(
+                 passage,
+                 Map.put(confirmation, :mass, mass_value)
+               ) do
+            {:ok, _updated_passage}
+            when not is_nil(mass_value) and not is_nil(mass_status) ->
+              WandererApp.Map.Server.update_connection_mass_status(map_id, %{
+                solar_system_source_id: passage.solar_system_source_id,
+                solar_system_target_id: passage.solar_system_target_id,
+                mass_status: mass_status
+              })
+
+            _ ->
+              :ok
+          end
         else
           Logger.warning(
             "update_passage_mass rejected: user does not own passage #{inspect(passage_id)}"

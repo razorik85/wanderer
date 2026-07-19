@@ -1,4 +1,4 @@
-import { Passage } from '@/hooks/Mapper/types';
+import { MassState, Passage } from '@/hooks/Mapper/types';
 
 const WORMHOLE_MASS_VARIANCE = 0.1;
 
@@ -12,6 +12,12 @@ export type MassBalance = {
   remainingMaximum: number | null;
   statusMinimum: MassBalanceStatus | null;
   statusMaximum: MassBalanceStatus | null;
+};
+
+export type ReconciledMassRange = {
+  compatible: boolean;
+  minimum: number | null;
+  maximum: number | null;
 };
 
 const getPassageMass = (passage: Passage) => {
@@ -58,7 +64,38 @@ export const calculateMassBalance = (passages: Passage[], nominalMass?: number |
     trackedMass,
     remainingMinimum,
     remainingMaximum,
-    statusMinimum: getStatus(remainingMinimum, nominalMass),
-    statusMaximum: getStatus(remainingMaximum, nominalMass),
+    statusMinimum: getStatus(remainingMinimum, nominalMass * (1 - WORMHOLE_MASS_VARIANCE)),
+    statusMaximum: getStatus(remainingMaximum, nominalMass * (1 + WORMHOLE_MASS_VARIANCE)),
   };
+};
+
+export const reconcileMassRange = (
+  balance: MassBalance,
+  nominalMass: number | null,
+  observedStatus: MassState,
+): ReconciledMassRange => {
+  if (nominalMass == null || balance.remainingMinimum == null || balance.remainingMaximum == null) {
+    return { compatible: false, minimum: null, maximum: null };
+  }
+
+  const possibleCapacityMinimum = nominalMass * (1 - WORMHOLE_MASS_VARIANCE);
+  const possibleCapacityMaximum = nominalMass * (1 + WORMHOLE_MASS_VARIANCE);
+  const trackedMass = balance.trackedMass;
+
+  // EVE reports the status after the passage. Constrain the possible actual
+  // capacity first, then subtract the mass of every passage including the new one.
+  const observedCapacityBounds: Record<MassState, [number, number]> = {
+    [MassState.normal]: [trackedMass * 2, possibleCapacityMaximum],
+    [MassState.half]: [trackedMass / 0.9, trackedMass * 2],
+    [MassState.verge]: [trackedMass, trackedMass / 0.9],
+  };
+  const [observedCapacityMinimum, observedCapacityMaximum] = observedCapacityBounds[observedStatus];
+  const capacityMinimum = Math.max(possibleCapacityMinimum, observedCapacityMinimum);
+  const capacityMaximum = Math.min(possibleCapacityMaximum, observedCapacityMaximum);
+  const minimum = Math.max(capacityMinimum - trackedMass, 0);
+  const maximum = Math.max(capacityMaximum - trackedMass, 0);
+
+  return capacityMinimum <= capacityMaximum
+    ? { compatible: true, minimum, maximum }
+    : { compatible: false, minimum: null, maximum: null };
 };

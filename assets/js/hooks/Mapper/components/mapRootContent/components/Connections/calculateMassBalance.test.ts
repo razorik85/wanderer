@@ -1,5 +1,6 @@
 import { Passage } from '@/hooks/Mapper/types';
-import { calculateMassBalance } from './calculateMassBalance.ts';
+import { MassState } from '@/hooks/Mapper/types';
+import { calculateMassBalance, reconcileMassRange } from './calculateMassBalance.ts';
 
 const passage = (mass: number, confirmed: boolean): Passage =>
   ({
@@ -39,5 +40,21 @@ describe('calculateMassBalance', () => {
     expect(result.remainingMaximum).toBeNull();
     expect(result.statusMinimum).toBeNull();
     expect(result.statusMaximum).toBeNull();
+  });
+
+  it('applies the observed status after including the triggering passage', () => {
+    const balance = calculateMassBalance([passage(400_000_000, true), passage(200_000_000, true)], 1_000_000_000);
+    const reconciled = reconcileMassRange(balance, 1_000_000_000, MassState.half);
+
+    expect(reconciled.compatible).toBe(true);
+    expect(reconciled.minimum).toBe(300_000_000);
+    expect(reconciled.maximum).toBe(500_000_000);
+  });
+
+  it('detects a conflict between observed and tracked status', () => {
+    const balance = calculateMassBalance([passage(850_000_000, true)], 1_000_000_000);
+    const reconciled = reconcileMassRange(balance, 1_000_000_000, MassState.normal);
+
+    expect(reconciled.compatible).toBe(false);
   });
 });

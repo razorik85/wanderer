@@ -1,5 +1,5 @@
 import { WdButton, WdTooltipWrapper } from '@/hooks/Mapper/components/ui-kit';
-import { Passage } from '@/hooks/Mapper/types';
+import { MassState, Passage } from '@/hooks/Mapper/types';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import clsx from 'clsx';
@@ -12,7 +12,7 @@ type PassageMassDialogProps = {
   passage: Passage | null;
   visible: boolean;
   onHide: () => void;
-  onSave: (mass: number) => Promise<void> | void;
+  onSave: (mass: number, massStatus: MassState | null) => Promise<void> | void;
 };
 
 const getPassageMass = (passage: Passage) => {
@@ -33,14 +33,17 @@ const parseMassValue = (value: string) => {
 export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageMassDialogProps) => {
   const [massValue, setMassValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const [massStatus, setMassStatus] = useState<MassState | null>(null);
 
   useEffect(() => {
     if (!passage) {
       setMassValue('');
+      setMassStatus(null);
       return;
     }
 
     setMassValue(`${getPassageMass(passage)}`);
+    setMassStatus(null);
   }, [passage]);
 
   const parsedMass = useMemo(() => parseMassValue(massValue), [massValue]);
@@ -53,7 +56,7 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
     setSaving(true);
 
     try {
-      await onSave(parsedMass);
+      await onSave(parsedMass, massStatus);
     } finally {
       setSaving(false);
     }
@@ -132,6 +135,26 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
             <div className="text-xs text-stone-500">
               {parsedMass == null ? 'Enter mass in kg' : `Preview: ${kgToTons(parsedMass)}`}
             </div>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-sm text-stone-300" htmlFor="passage-mass-status">
+              Observed wormhole status
+            </label>
+            <select
+              id="passage-mass-status"
+              value={massStatus ?? ''}
+              onChange={event =>
+                setMassStatus(event.target.value === '' ? null : (Number(event.target.value) as MassState))
+              }
+              className="h-10 rounded border border-stone-700 bg-stone-900 px-3 text-sm text-stone-200"
+            >
+              <option value="">Unchanged</option>
+              <option value={MassState.normal}>Stable</option>
+              <option value={MassState.half}>Reduced</option>
+              <option value={MassState.verge}>Critical</option>
+            </select>
+            <div className="text-xs text-stone-500">Only select a status when the in-game description changed.</div>
           </div>
 
           <div className="flex justify-end gap-2">

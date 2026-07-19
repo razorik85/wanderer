@@ -9,7 +9,13 @@ import {
 import { Connections, PassageMassDialog } from '@/hooks/Mapper/components/mapRootContent/components/Connections';
 import { getSystemById } from '@/hooks/Mapper/helpers';
 import { MapRootData, useMapRootState } from '@/hooks/Mapper/mapRootProvider';
-import { CommandSelectSystems, OutCommand, OutCommandHandler, SolarSystemConnection } from '@/hooks/Mapper/types';
+import {
+  CommandSelectSystems,
+  MassState,
+  OutCommand,
+  OutCommandHandler,
+  SolarSystemConnection,
+} from '@/hooks/Mapper/types';
 import { Commands } from '@/hooks/Mapper/types/mapHandlers.ts';
 import isEqual from 'lodash.isequal';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -82,7 +88,7 @@ export const MapWrapper = () => {
   }, [update]);
 
   const handleSavePassageMass = useCallback(
-    async (mass: number) => {
+    async (mass: number, massStatus: MassState | null) => {
       if (!passageMassRequired) {
         return;
       }
@@ -92,6 +98,7 @@ export const MapWrapper = () => {
         data: {
           id: passageMassRequired.id,
           mass,
+          mass_status: massStatus,
         },
       });
 

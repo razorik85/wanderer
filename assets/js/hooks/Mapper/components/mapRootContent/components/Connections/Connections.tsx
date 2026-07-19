@@ -3,6 +3,7 @@ import {
   ConnectionInfoOutput,
   ConnectionOutput,
   ConnectionType,
+  MassState,
   OutCommand,
   Passage,
   PassageWithSourceTarget,
@@ -18,7 +19,7 @@ import { InfoDrawer, SystemView, TimeAgo } from '@/hooks/Mapper/components/ui-ki
 import { kgToTons } from '@/hooks/Mapper/utils/kgToTons.ts';
 import { PassageCard } from './PassageCard';
 import { PassageMassDialog } from './PassageMassDialog';
-import { calculateMassBalance, MassBalanceStatus } from './calculateMassBalance.ts';
+import { calculateMassBalance, MassBalanceStatus, reconcileMassRange } from './calculateMassBalance.ts';
 
 const sortByDate = (a: string, b: string) => new Date(a).getTime() - new Date(b).getTime();
 
@@ -27,6 +28,12 @@ const statusColor: Record<MassBalanceStatus, string> = {
   Reduced: 'text-yellow-300',
   Critical: 'text-red-400',
   Collapsed: 'text-stone-400',
+};
+
+const observedStatusName: Record<MassState, MassBalanceStatus> = {
+  [MassState.normal]: 'Stable',
+  [MassState.half]: 'Reduced',
+  [MassState.verge]: 'Critical',
 };
 
 export interface ConnectionPassagesContentProps {
@@ -97,6 +104,8 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
   const [passages, setPassages] = useState<Passage[]>([]);
   const [info, setInfo] = useState<ConnectionInfoOutput | null>(null);
   const [editingPassage, setEditingPassage] = useState<PassageWithSourceTarget | null>(null);
+  const [massUpdateInFlight, setMassUpdateInFlight] = useState(false);
+  const [observedMassStatusOverride, setObservedMassStatusOverride] = useState<MassState | null>(null);
 
   const loadInfo = useCallback(
     async (connection: SolarSystemConnection) => {
@@ -145,10 +154,14 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
   useEffect(() => {
     if (!selectedConnection) {
       setEditingPassage(null);
+      setMassUpdateInFlight(false);
+      setObservedMassStatusOverride(null);
       return;
     }
 
     setEditingPassage(null);
+    setMassUpdateInFlight(false);
+    setObservedMassStatusOverride(null);
     loadInfo(selectedConnection);
     loadPassages(selectedConnection);
   }, [loadInfo, loadPassages, selectedConnection]);
@@ -172,6 +185,12 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
     return statusMinimum === statusMaximum ? statusMinimum : `${statusMinimum} - ${statusMaximum}`;
   }, [massBalance]);
 
+  const effectiveObservedMassStatus = observedMassStatusOverride ?? cnInfo?.mass_status ?? MassState.normal;
+  const observedStatus = observedStatusName[effectiveObservedMassStatus];
+  const reconciledRange = useMemo(() => {
+    return reconcileMassRange(massBalance, wormholeNominalMass, effectiveObservedMassStatus);
+  }, [effectiveObservedMassStatus, massBalance, wormholeNominalMass]);
+
   const unconfirmedPassages = useMemo(() => {
     return passages.filter(passage => passage.mass_confirmed_at == null).length;
   }, [passages]);
@@ -185,28 +204,40 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
   }, []);
 
   const handleSavePassageMass = useCallback(
-    async (mass: number) => {
+    async (mass: number, massStatus: MassState | null) => {
       if (!editingPassage) {
         return;
       }
 
-      await outCommand({
-        type: OutCommand.updatePassageMass,
-        data: {
-          id: editingPassage.id,
-          mass,
-        },
-      });
+      setMassUpdateInFlight(true);
 
-      const massConfirmedAt = new Date().toISOString();
+      try {
+        await outCommand({
+          type: OutCommand.updatePassageMass,
+          data: {
+            id: editingPassage.id,
+            mass,
+            mass_status: massStatus,
+          },
+        });
 
-      setPassages(prev =>
-        prev.map(passage =>
-          passage.id === editingPassage.id ? { ...passage, mass, mass_confirmed_at: massConfirmedAt } : passage,
-        ),
-      );
-      setEditingPassage(prev => (prev ? { ...prev, mass, mass_confirmed_at: massConfirmedAt } : prev));
-      handleHidePassageDialog();
+        const massConfirmedAt = new Date().toISOString();
+
+        setPassages(prev =>
+          prev.map(passage =>
+            passage.id === editingPassage.id ? { ...passage, mass, mass_confirmed_at: massConfirmedAt } : passage,
+          ),
+        );
+
+        if (massStatus != null) {
+          setObservedMassStatusOverride(massStatus);
+        }
+
+        setEditingPassage(prev => (prev ? { ...prev, mass, mass_confirmed_at: massConfirmedAt } : prev));
+        handleHidePassageDialog();
+      } finally {
+        setMassUpdateInFlight(false);
+      }
     },
     [editingPassage, handleHidePassageDialog, outCommand],
   );
@@ -325,6 +356,28 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
                     >
                       {massStatus}
                     </span>
+                    {massUpdateInFlight ? (
+                      <span className="col-span-2 text-right text-stone-400">Applying passage before status...</span>
+                    ) : (
+                      <>
+                        <span className="text-stone-400">Observed status</span>
+                        <span className={clsx('text-right', statusColor[observedStatus])}>{observedStatus}</span>
+                        {reconciledRange.compatible &&
+                        reconciledRange.minimum != null &&
+                        reconciledRange.maximum != null ? (
+                          <>
+                            <span className="text-stone-400">Constrained range</span>
+                            <span className="text-right text-emerald-300">
+                              {kgToTons(reconciledRange.minimum)} - {kgToTons(reconciledRange.maximum)}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="col-span-2 mt-1 rounded border border-red-500/30 bg-red-500/10 px-2 py-1.5 text-red-300">
+                            Observed status conflicts with the tracked passage mass.
+                          </span>
+                        )}
+                      </>
+                    )}
                   </>
                 ) : (
                   <>
