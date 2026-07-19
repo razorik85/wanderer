@@ -1,5 +1,5 @@
 import { Passage } from '@/hooks/Mapper/types';
-import { calculatePolarizations, formatPolarizationRemaining, isRecentPassage } from './calculatePolarization.ts';
+import { calculatePolarizations, formatPolarizationRemaining } from './calculatePolarization.ts';
 
 const passage = (from: boolean, insertedAt: string, characterId = '42'): Passage =>
   ({
@@ -25,10 +25,9 @@ describe('calculatePolarizations', () => {
     expect(result[0]).toMatchObject({ state: 'polarized', expiresAt: new Date('2026-07-19T12:06:00Z').getTime() });
   });
 
-  it('drops expired polarization and old visible history', () => {
+  it('drops expired polarization', () => {
     const oldPassage = passage(true, '2026-07-19T11:45:00Z');
     expect(calculatePolarizations([oldPassage], now)).toEqual([]);
-    expect(isRecentPassage(oldPassage, now)).toBe(false);
   });
 
   it('formats a stable countdown', () => {

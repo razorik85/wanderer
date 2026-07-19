@@ -1,7 +1,6 @@
 import { Passage } from '@/hooks/Mapper/types';
 
 export const POLARIZATION_DURATION_MS = 5 * 60 * 1000;
-export const ACTIVE_PASSAGE_HISTORY_MS = 15 * 60 * 1000;
 
 export type CharacterPolarization = {
   characterId: string;
@@ -54,9 +53,6 @@ export const calculatePolarizations = (passages: Passage[], now = Date.now()): C
     .filter((entry): entry is CharacterPolarization => entry != null)
     .sort((a, b) => (a.state === b.state ? a.expiresAt - b.expiresAt : a.state === 'polarized' ? -1 : 1));
 };
-
-export const isRecentPassage = (passage: Passage, now = Date.now()) =>
-  new Date(passage.inserted_at).getTime() >= now - ACTIVE_PASSAGE_HISTORY_MS;
 
 export const formatPolarizationRemaining = (expiresAt: number, now = Date.now()) => {
   const seconds = Math.max(Math.ceil((expiresAt - now) / 1000), 0);

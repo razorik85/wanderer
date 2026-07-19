@@ -20,12 +20,7 @@ import { kgToTons } from '@/hooks/Mapper/utils/kgToTons.ts';
 import { PassageCard } from './PassageCard';
 import { PassageMassDialog } from './PassageMassDialog';
 import { calculateMassBalance, MassBalanceStatus, reconcileMassRange } from './calculateMassBalance.ts';
-import {
-  ACTIVE_PASSAGE_HISTORY_MS,
-  calculatePolarizations,
-  formatPolarizationRemaining,
-  isRecentPassage,
-} from './calculatePolarization.ts';
+import { calculatePolarizations, formatPolarizationRemaining } from './calculatePolarization.ts';
 import { getMassAlerts } from './getMassAlerts.ts';
 
 const sortByDate = (a: string, b: string) => new Date(a).getTime() - new Date(b).getTime();
@@ -165,11 +160,6 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
         target: x.from ? cnInfo.source : cnInfo.target,
       }));
   }, [cnInfo, passages]);
-
-  const visiblePassages = useMemo(
-    () => preparedPassages.filter(passage => isRecentPassage(passage, currentTime)),
-    [currentTime, preparedPassages],
-  );
 
   const polarizations = useMemo(() => calculatePolarizations(passages, currentTime), [currentTime, passages]);
 
@@ -504,14 +494,7 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
         {/* separator */}
         <div className="w-full h-px bg-neutral-800 px-0.5"></div>
 
-        <div className="flex min-h-0 flex-col">
-          <div className="px-2 py-1 text-[11px] text-stone-500">
-            Passages from the last {ACTIVE_PASSAGE_HISTORY_MS / 60_000} minutes
-          </div>
-          <div className="min-h-0 flex-1">
-            <ConnectionPassages passages={visiblePassages} onEditPassage={handleEditPassage} />
-          </div>
-        </div>
+        <ConnectionPassages passages={preparedPassages} onEditPassage={handleEditPassage} />
       </div>
 
       <PassageMassDialog
