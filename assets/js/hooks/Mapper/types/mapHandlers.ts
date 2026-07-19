@@ -304,6 +304,8 @@ export enum OutCommand {
   updateUserSettings = 'update_user_settings',
   saveDefaultSettings = 'save_default_settings',
   getDefaultSettings = 'get_default_settings',
+  searchShipTypes = 'search_ship_types',
+  updateMassTemplates = 'update_mass_templates',
   unlinkSignature = 'unlink_signature',
   searchSystems = 'search_systems',
   undoDeleteSignatures = 'undo_delete_signatures',

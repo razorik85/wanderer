@@ -564,6 +564,8 @@ defmodule WandererAppWeb.MapsLive do
         options_form,
         %{assigns: %{map_id: map_id, map: map}} = socket
       ) do
+    {:ok, stored_options} = WandererApp.MapRepo.options_to_form_data(map)
+
     options =
       options_form
       |> Map.take([
@@ -576,6 +578,7 @@ defmodule WandererAppWeb.MapsLive do
         "allowed_copy_for",
         "allowed_paste_for"
       ])
+      |> Map.put("mass_templates", Map.get(stored_options, "mass_templates", []))
 
     {:ok, updated_map} = WandererApp.MapRepo.update_options(map, options)
 

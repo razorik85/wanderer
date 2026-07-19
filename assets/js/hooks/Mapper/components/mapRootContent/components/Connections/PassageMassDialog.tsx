@@ -6,6 +6,8 @@ import clsx from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import { TimeAgo } from '@/hooks/Mapper/components/ui-kit';
 import { getShipName } from './PassageCard/getShipName.ts';
+import { useMapRootState } from '@/hooks/Mapper/mapRootProvider';
+import { getShipMassTemplates } from './massTemplates.ts';
 
 type PassageMassDialogProps = {
   passage: Passage | null;
@@ -33,6 +35,9 @@ const parseMassValue = (value: string) => {
 };
 
 export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageMassDialogProps) => {
+  const {
+    data: { options },
+  } = useMapRootState();
   const [massValue, setMassValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [massStatus, setMassStatus] = useState<MassState | null>(null);
@@ -49,6 +54,10 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
   }, [passage]);
 
   const parsedMass = useMemo(() => parseMassValue(massValue), [massValue]);
+  const matchingTemplates = useMemo(
+    () => (passage ? getShipMassTemplates(options.mass_templates, passage.ship.ship_type_id) : []),
+    [options.mass_templates, passage],
+  );
 
   const handleSave = async () => {
     if (!passage || parsedMass == null) {
@@ -125,6 +134,26 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
             <label className="text-sm text-stone-300" htmlFor="passage-mass">
               Passage mass in tonnes
             </label>
+
+            {matchingTemplates.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {matchingTemplates.map(template => (
+                  <button
+                    key={`${template.ship_type_id}-${template.label}-${template.mass_tons}`}
+                    type="button"
+                    onClick={() => setMassValue(String(template.mass_tons))}
+                    className={clsx(
+                      'rounded border px-2.5 py-1.5 text-xs transition-colors',
+                      parsedMass === template.mass_tons
+                        ? 'border-sky-400 bg-sky-500/20 text-sky-200'
+                        : 'border-stone-600 bg-stone-800 text-stone-300 hover:border-stone-500 hover:bg-stone-700',
+                    )}
+                  >
+                    {template.label} · {new Intl.NumberFormat().format(template.mass_tons)} t
+                  </button>
+                ))}
+              </div>
+            )}
 
             <InputText
               id="passage-mass"

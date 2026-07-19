@@ -97,6 +97,7 @@ const INITIAL_DATA: MapRootData = {
     show_linked_signature_id_temp_name: 'false',
     show_temp_system_name: 'false',
     store_custom_labels: 'false',
+    mass_templates: [],
   },
   isSubscriptionActive: false,
   linkSignatureToSystem: null,

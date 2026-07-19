@@ -17,6 +17,7 @@ import { ImportExport } from './components/ImportExport.tsx';
 import { ServerSettings } from './components/ServerSettings.tsx';
 import { AdminSettings } from './components/AdminSettings.tsx';
 import { useMapCheckPermissions } from '@/hooks/Mapper/mapRootProvider/hooks/api';
+import { MassTemplatesSettings } from './components/MassTemplatesSettings.tsx';
 
 export interface MapSettingsProps {
   visible: boolean;
@@ -98,6 +99,12 @@ export const MapSettingsComp = ({ visible, onHide }: MapSettingsProps) => {
             <TabPanel header="Widgets" className="h-full" headerClassName={styles.verticalTabHeader}>
               <WidgetsSettings />
             </TabPanel>
+
+            {isAdmin && (
+              <TabPanel header="Mass presets" className="h-full" headerClassName={styles.verticalTabHeader}>
+                <MassTemplatesSettings />
+              </TabPanel>
+            )}
 
             <TabPanel header="Import/Export" className="h-full" headerClassName={styles.verticalTabHeader}>
               <ImportExport />
