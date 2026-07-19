@@ -33,12 +33,12 @@ defmodule WandererApp.Api.MapChainPassages do
     defaults [:create, :read, :destroy]
 
     update :update do
-      accept [:mass]
+      accept [:mass, :mass_confirmed_at, :mass_confirmed_by_id]
       require_atomic? false
     end
 
     update :update_mass do
-      accept [:mass]
+      accept [:mass, :mass_confirmed_at, :mass_confirmed_by_id]
       require_atomic? false
     end
 
@@ -99,6 +99,8 @@ defmodule WandererApp.Api.MapChainPassages do
             ship_type_id: passage.ship_type_id,
             ship_name: passage.ship_name,
             mass: passage.mass,
+            mass_confirmed_at: passage.mass_confirmed_at,
+            mass_confirmed_by_id: passage.mass_confirmed_by_id,
             inserted_at: passage.inserted_at,
             character: character
           }
@@ -121,6 +123,7 @@ defmodule WandererApp.Api.MapChainPassages do
     attribute :ship_type_id, :integer
     attribute :ship_name, :string
     attribute :mass, :integer
+    attribute :mass_confirmed_at, :utc_datetime_usec
     attribute :solar_system_source_id, :integer
     attribute :solar_system_target_id, :integer
 
@@ -138,5 +141,11 @@ defmodule WandererApp.Api.MapChainPassages do
       primary_key?: true,
       allow_nil?: false,
       attribute_writable?: true
+
+    belongs_to :mass_confirmed_by, WandererApp.Api.User do
+      source_attribute(:mass_confirmed_by_id)
+      allow_nil?(true)
+      attribute_writable?(true)
+    end
   end
 end

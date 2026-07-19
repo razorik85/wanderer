@@ -187,7 +187,7 @@ defmodule WandererAppWeb.HandlerAuthTest do
           solar_system_target_id: 30_000_144
         })
 
-      {:ok, map_a: map_a, map_b: map_b, passage_a: passage_a}
+      {:ok, user: user, map_a: map_a, map_b: map_b, passage_a: passage_a}
     end
 
     test "returns {:ok, passage} when passage belongs to the given map", %{
@@ -204,6 +204,24 @@ defmodule WandererAppWeb.HandlerAuthTest do
     } do
       # Repro for update_passage_mass cross-map corruption.
       assert {:error, :not_found} = HandlerAuth.authorize_passage(passage_a.id, map_b.id)
+    end
+
+    test "persists passage mass confirmation metadata", %{
+      user: user,
+      passage_a: passage_a
+    } do
+      confirmed_at = DateTime.utc_now()
+
+      assert {:ok, updated} =
+               WandererApp.Api.MapChainPassages.update_mass(passage_a, %{
+                 mass: 1_100_000,
+                 mass_confirmed_at: confirmed_at,
+                 mass_confirmed_by_id: user.id
+               })
+
+      assert updated.mass == 1_100_000
+      assert DateTime.compare(updated.mass_confirmed_at, confirmed_at) == :eq
+      assert updated.mass_confirmed_by_id == user.id
     end
   end
 

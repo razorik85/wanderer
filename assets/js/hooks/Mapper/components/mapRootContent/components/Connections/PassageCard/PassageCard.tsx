@@ -25,6 +25,7 @@ export const PassageCard = ({
   target,
   from,
   mass,
+  mass_confirmed_at,
   onEdit,
 }: PassageCardType) => {
   const isOwn = false;
@@ -154,7 +155,14 @@ export const PassageCard = ({
                 </WdTooltipWrapper>
               </span>
 
-              <div className="text-stone-400">{kgToTons(mass ?? parseInt(ship.ship_type_info.mass))}</div>
+              <div className="flex items-center gap-1 text-stone-400">
+                {mass_confirmed_at == null && (
+                  <WdTooltipWrapper content="Passage mass not confirmed">
+                    <span className="pi pi-exclamation-triangle text-amber-400" />
+                  </WdTooltipWrapper>
+                )}
+                <span>{kgToTons(mass ?? parseInt(ship.ship_type_info.mass))}</span>
+              </div>
             </div>
           </div>
 

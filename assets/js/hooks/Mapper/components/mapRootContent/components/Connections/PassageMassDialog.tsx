@@ -106,6 +106,17 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
           </div>
 
           <div className="flex flex-col gap-2">
+            <div
+              className={clsx('rounded border px-3 py-2 text-xs', {
+                'border-amber-500/40 bg-amber-500/10 text-amber-300': passage.mass_confirmed_at == null,
+                'border-emerald-500/40 bg-emerald-500/10 text-emerald-300': passage.mass_confirmed_at != null,
+              })}
+            >
+              {passage.mass_confirmed_at == null
+                ? 'This passage mass is not confirmed yet.'
+                : `Confirmed ${new Date(passage.mass_confirmed_at).toLocaleString()}`}
+            </div>
+
             <label className="text-sm text-stone-300" htmlFor="passage-mass">
               Passage mass
             </label>

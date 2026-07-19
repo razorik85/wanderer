@@ -10,6 +10,8 @@ export type Passage = {
   from: boolean;
   inserted_at: string; // Date
   mass: number | null;
+  mass_confirmed_at: string | null;
+  mass_confirmed_by_id: string | null;
   ship: ShipTypeRaw;
   character: PassageLimitedCharacterType;
 };

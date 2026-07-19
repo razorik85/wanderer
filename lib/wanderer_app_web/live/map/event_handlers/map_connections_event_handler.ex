@@ -56,7 +56,7 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
          {:ok, character} <- WandererApp.Character.get_character(character_id) do
       passage =
         passage
-        |> Map.take([:id, :inserted_at, :mass])
+        |> Map.take([:id, :inserted_at, :mass, :mass_confirmed_at, :mass_confirmed_by_id])
         |> Map.put(:from, true)
         |> Map.put(:character, MapEventHandler.map_ui_character_stat(character))
         |> Map.put(
@@ -340,7 +340,20 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
           end)
 
         if Map.get(user_permissions, :update_system, false) or owns_passage? do
-          WandererApp.Api.MapChainPassages.update_mass(passage, %{mass: mass_value})
+          confirmation =
+            if is_nil(mass_value) do
+              %{mass_confirmed_at: nil, mass_confirmed_by_id: nil}
+            else
+              %{
+                mass_confirmed_at: DateTime.utc_now(),
+                mass_confirmed_by_id: current_user.id
+              }
+            end
+
+          WandererApp.Api.MapChainPassages.update_mass(
+            passage,
+            Map.put(confirmation, :mass, mass_value)
+          )
         else
           Logger.warning(
             "update_passage_mass rejected: user does not own passage #{inspect(passage_id)}"

@@ -150,6 +150,10 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
     return passages.reduce((acc, x) => acc + getPassageMass(x), 0);
   }, [passages]);
 
+  const unconfirmedPassages = useMemo(() => {
+    return passages.filter(passage => passage.mass_confirmed_at == null).length;
+  }, [passages]);
+
   const handleEditPassage = useCallback((passage: PassageWithSourceTarget) => {
     setEditingPassage(passage);
   }, []);
@@ -172,8 +176,14 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
         },
       });
 
-      setPassages(prev => prev.map(passage => (passage.id === editingPassage.id ? { ...passage, mass } : passage)));
-      setEditingPassage(prev => (prev ? { ...prev, mass } : prev));
+      const massConfirmedAt = new Date().toISOString();
+
+      setPassages(prev =>
+        prev.map(passage =>
+          passage.id === editingPassage.id ? { ...passage, mass, mass_confirmed_at: massConfirmedAt } : passage,
+        ),
+      );
+      setEditingPassage(prev => (prev ? { ...prev, mass, mass_confirmed_at: massConfirmedAt } : prev));
       handleHidePassageDialog();
     },
     [editingPassage, handleHidePassageDialog, outCommand],
@@ -247,6 +257,16 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
           </div>
 
           <div className="flex gap-2"></div>
+
+          {isWormhole && passages.length > 0 && (
+            <div className="flex justify-end">
+              <InfoDrawer title="Passage mass confirmations" rightSide>
+                <span className={unconfirmedPassages > 0 ? 'text-amber-300' : 'text-emerald-300'}>
+                  {unconfirmedPassages > 0 ? `${unconfirmedPassages} unconfirmed` : 'All confirmed'}
+                </span>
+              </InfoDrawer>
+            </div>
+          )}
         </div>
 
         {/* separator */}
