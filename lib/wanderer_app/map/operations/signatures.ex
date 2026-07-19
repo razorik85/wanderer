@@ -106,6 +106,7 @@ defmodule WandererApp.Map.Operations.Signatures do
               solar_system_id,
               linked_system_id,
               wormhole_type,
+              attrs["eve_id"],
               user_id,
               char_id
             )
@@ -236,6 +237,7 @@ defmodule WandererApp.Map.Operations.Signatures do
           integer(),
           String.t() | nil,
           String.t(),
+          String.t(),
           String.t()
         ) :: :ok | {:error, atom()}
   defp handle_linked_system(
@@ -243,6 +245,7 @@ defmodule WandererApp.Map.Operations.Signatures do
          source_system_id,
          linked_system_id,
          wormhole_type,
+         signature_eve_id,
          user_id,
          char_id
        ) do
@@ -250,33 +253,44 @@ defmodule WandererApp.Map.Operations.Signatures do
     case ensure_system_on_map(map_id, linked_system_id, user_id, char_id) do
       {:ok, _linked_system} ->
         # Check if connection exists between the systems
-        case Connections.get_connection_by_systems(map_id, source_system_id, linked_system_id) do
-          {:ok, nil} ->
-            # No connection exists, create one
-            create_connection_with_wormhole_type(
-              map_id,
-              source_system_id,
-              linked_system_id,
-              wormhole_type,
-              char_id
-            )
+        result =
+          case Connections.get_connection_by_systems(map_id, source_system_id, linked_system_id) do
+            {:ok, nil} ->
+              # No connection exists, create one
+              create_connection_with_wormhole_type(
+                map_id,
+                source_system_id,
+                linked_system_id,
+                wormhole_type,
+                char_id
+              )
 
-          {:ok, _existing_conn} ->
-            # Connection exists, update wormhole type if provided
-            update_connection_wormhole_type(
-              map_id,
-              source_system_id,
-              linked_system_id,
-              wormhole_type
-            )
+            {:ok, _existing_conn} ->
+              # Connection exists, update wormhole type if provided
+              update_connection_wormhole_type(
+                map_id,
+                source_system_id,
+                linked_system_id,
+                wormhole_type
+              )
 
-          {:error, reason} ->
-            Logger.warning(
-              "[handle_linked_system] Failed to check connection: #{inspect(reason)}"
-            )
+            {:error, reason} ->
+              Logger.warning(
+                "[handle_linked_system] Failed to check connection: #{inspect(reason)}"
+              )
 
-            {:error, :connection_check_failed}
+              {:error, :connection_check_failed}
+          end
+
+        if result == :ok do
+          Server.update_connection_mass_tracking(map_id, %{
+            solar_system_source_id: source_system_id,
+            solar_system_target_id: linked_system_id,
+            signature_eve_id: signature_eve_id
+          })
         end
+
+        result
 
       {:error, :invalid_solar_system} ->
         Logger.warning(
@@ -496,6 +510,12 @@ defmodule WandererApp.Map.Operations.Signatures do
         signature
         |> MapSystemSignature.update_group!(%{group: "Wormhole"})
         |> MapSystemSignature.update_linked_system(%{linked_system_id: solar_system_target})
+
+      Server.update_connection_mass_tracking(map_id, %{
+        solar_system_source_id: source_system.solar_system_id,
+        solar_system_target_id: solar_system_target,
+        signature_eve_id: signature.eve_id
+      })
 
       # Update target system if it has no linked signature or is already linked to the same signature
       if is_nil(target_system.linked_sig_eve_id) or

@@ -8,13 +8,15 @@ defmodule WandererApp.MapChainPassagesRepo do
       to
     )
     |> case do
-      {:ok, %{inserted_at: inserted_at} = _connection} when not is_nil(inserted_at) ->
+      {:ok, %{inserted_at: inserted_at} = connection} when not is_nil(inserted_at) ->
+        tracking_started_at = connection.mass_tracking_started_at || inserted_at
+
         {:ok, from_passages} =
           WandererApp.Api.MapChainPassages.by_connection(%{
             map_id: map_id,
             from: from,
             to: to,
-            after: inserted_at
+            after: tracking_started_at
           })
 
         {:ok, to_passages} =
@@ -22,7 +24,7 @@ defmodule WandererApp.MapChainPassagesRepo do
             map_id: map_id,
             from: to,
             to: from,
-            after: inserted_at
+            after: tracking_started_at
           })
 
         from_passages =

@@ -175,8 +175,13 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
   }, [wormholeData]);
 
   const massBalance = useMemo(() => {
-    return calculateMassBalance(passages, wormholeNominalMass);
-  }, [passages, wormholeNominalMass]);
+    const regenerationPerDay = Number(wormholeData?.mass_regen ?? 0);
+
+    return calculateMassBalance(passages, wormholeNominalMass, {
+      massRegenerationPerDay: Number.isFinite(regenerationPerDay) ? regenerationPerDay : 0,
+      trackingStartedAt: info?.mass_tracking_started_at,
+    });
+  }, [info?.mass_tracking_started_at, passages, wormholeData?.mass_regen, wormholeNominalMass]);
 
   const massStatus = useMemo(() => {
     const { statusMinimum, statusMaximum } = massBalance;
@@ -321,6 +326,14 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
             </div>
           )}
 
+          {isWormhole && info?.mass_tracking_started_at && (
+            <div className="flex justify-end">
+              <InfoDrawer title="Mass tracking since" rightSide>
+                <TimeAgo timestamp={info.mass_tracking_started_at} />
+              </InfoDrawer>
+            </div>
+          )}
+
           {isWormhole && (
             <div className="rounded border border-neutral-700/80 bg-neutral-950/40 p-3 text-xs">
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -338,6 +351,14 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
                 <span className="text-right text-amber-300">{kgToTons(massBalance.estimatedOpenMass)}</span>
                 <span className="text-stone-400">Tracked total</span>
                 <span className="text-right text-stone-200">{kgToTons(massBalance.trackedMass)}</span>
+                {massBalance.regeneratedMass > 0 && (
+                  <>
+                    <span className="text-stone-400">Regenerated mass</span>
+                    <span className="text-right text-sky-300">+{kgToTons(massBalance.regeneratedMass)}</span>
+                    <span className="text-stone-400">Effective depletion</span>
+                    <span className="text-right text-stone-200">{kgToTons(massBalance.effectiveMass)}</span>
+                  </>
+                )}
 
                 {massBalance.remainingMinimum != null && massBalance.remainingMaximum != null ? (
                   <>

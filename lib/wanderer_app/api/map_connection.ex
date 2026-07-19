@@ -71,6 +71,7 @@ defmodule WandererApp.Api.MapConnection do
     define(:update_custom_info, action: :update_custom_info)
     define(:update_type, action: :update_type)
     define(:update_wormhole_type, action: :update_wormhole_type)
+    define(:update_mass_tracking, action: :update_mass_tracking)
   end
 
   actions do
@@ -206,6 +207,11 @@ defmodule WandererApp.Api.MapConnection do
       accept [:wormhole_type]
       require_atomic? false
     end
+
+    update :update_mass_tracking do
+      accept [:mass_tracking_started_at, :source_signature_eve_id, :target_signature_eve_id]
+      require_atomic? false
+    end
   end
 
   attributes do
@@ -264,6 +270,13 @@ defmodule WandererApp.Api.MapConnection do
     attribute :wormhole_type, :string do
       public? true
     end
+
+    attribute :mass_tracking_started_at, :utc_datetime_usec do
+      public? true
+    end
+
+    attribute :source_signature_eve_id, :string
+    attribute :target_signature_eve_id, :string
 
     attribute :count_of_passage, :integer do
       default(0)

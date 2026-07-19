@@ -26,6 +26,7 @@ export type ConnectionInfoOutput = {
   locked_at: string | null;
   locked_by_name: string | null;
   wormhole_type: string | null;
+  mass_tracking_started_at: string;
 };
 
 export type ConnectionOutput = {

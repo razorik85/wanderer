@@ -2,9 +2,10 @@ import { Passage } from '@/hooks/Mapper/types';
 import { MassState } from '@/hooks/Mapper/types';
 import { calculateMassBalance, reconcileMassRange } from './calculateMassBalance.ts';
 
-const passage = (mass: number, confirmed: boolean): Passage =>
+const passage = (mass: number, confirmed: boolean, insertedAt = '2026-07-19T00:00:00Z'): Passage =>
   ({
     id: `${mass}-${confirmed}`,
+    inserted_at: insertedAt,
     mass,
     mass_confirmed_at: confirmed ? '2026-07-19T12:00:00Z' : null,
     mass_confirmed_by_id: confirmed ? 'user-id' : null,
@@ -56,5 +57,18 @@ describe('calculateMassBalance', () => {
     const reconciled = reconcileMassRange(balance, 1_000_000_000, MassState.normal);
 
     expect(reconciled.compatible).toBe(false);
+  });
+
+  it('applies capped mass regeneration between passages', () => {
+    const result = calculateMassBalance([passage(600_000_000, true)], 1_000_000_000, {
+      massRegenerationPerDay: 500_000_000,
+      trackingStartedAt: '2026-07-19T00:00:00Z',
+      now: new Date('2026-07-20T00:00:00Z'),
+    });
+
+    expect(result.regeneratedMass).toBe(500_000_000);
+    expect(result.effectiveMass).toBe(100_000_000);
+    expect(result.remainingMinimum).toBe(800_000_000);
+    expect(result.remainingMaximum).toBe(1_000_000_000);
   });
 });

@@ -288,6 +288,7 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
         maybe_update_connection_time_status(map_id, existing, updated)
         maybe_update_connection_mass_status(map_id, existing, updated)
         maybe_update_connection_wormhole_type(map_id, existing, updated)
+        maybe_update_connection_mass_tracking(map_id, updated)
         maybe_sync_custom_mass_status_to_connection(map_id, existing, updated)
         :ok
 
@@ -380,6 +381,22 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
   end
 
   defp maybe_update_connection_wormhole_type(_map_id, _old_sig, _updated_sig), do: :ok
+
+  defp maybe_update_connection_mass_tracking(
+         map_id,
+         %{eve_id: eve_id, system_id: system_id, linked_system_id: linked_system_id}
+       )
+       when not is_nil(linked_system_id) and not is_nil(eve_id) do
+    with {:ok, source_system} <- MapSystem.by_id(system_id) do
+      ConnectionsImpl.update_connection_mass_tracking(map_id, %{
+        solar_system_source_id: source_system.solar_system_id,
+        solar_system_target_id: linked_system_id,
+        signature_eve_id: eve_id
+      })
+    end
+  end
+
+  defp maybe_update_connection_mass_tracking(_map_id, _updated_sig), do: :ok
 
   defp maybe_sync_custom_mass_status_to_connection(
          map_id,

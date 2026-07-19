@@ -240,7 +240,8 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
            marl_eol_time: connection_mark_eol_time,
            locked_at: locked_at,
            locked_by_name: locked_by_name,
-           wormhole_type: get_connection_wormhole_type(map_id, connection)
+           wormhole_type: get_connection_wormhole_type(map_id, connection),
+           mass_tracking_started_at: connection.mass_tracking_started_at || connection.inserted_at
          }}
 
       _ ->
@@ -321,6 +322,54 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
         connection_update
       ),
       do: update_connection(map_id, :update_wormhole_type, [:wormhole_type], connection_update)
+
+  def update_connection_mass_tracking(
+        map_id,
+        %{
+          solar_system_source_id: source_id,
+          solar_system_target_id: target_id,
+          signature_eve_id: signature_eve_id
+        } = connection_update
+      ) do
+    case WandererApp.Map.find_connection(map_id, source_id, target_id) do
+      {:ok, connection} ->
+        signature_attribute =
+          if connection.solar_system_source == source_id,
+            do: :source_signature_eve_id,
+            else: :target_signature_eve_id
+
+        previous_signature_eve_id = Map.get(connection, signature_attribute)
+
+        tracking_started_at =
+          resolve_mass_tracking_started_at(
+            previous_signature_eve_id,
+            signature_eve_id,
+            connection.mass_tracking_started_at || connection.inserted_at,
+            DateTime.utc_now()
+          )
+
+        connection_update
+        |> Map.put(signature_attribute, signature_eve_id)
+        |> Map.put(:mass_tracking_started_at, tracking_started_at)
+        |> then(
+          &update_connection(
+            map_id,
+            :update_mass_tracking,
+            [signature_attribute, :mass_tracking_started_at],
+            &1
+          )
+        )
+
+      _ ->
+        :ok
+    end
+  end
+
+  def resolve_mass_tracking_started_at(previous_signature, new_signature, current_start, now) do
+    if not is_nil(previous_signature) and previous_signature != new_signature,
+      do: now,
+      else: current_start
+  end
 
   def resolve_wormhole_type_from_signatures(stored_type, signature_types) do
     if stored_type not in [nil, "", "K162"] do
