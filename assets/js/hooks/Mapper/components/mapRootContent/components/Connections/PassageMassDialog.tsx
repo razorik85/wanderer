@@ -5,7 +5,6 @@ import { InputText } from 'primereact/inputtext';
 import clsx from 'clsx';
 import { useEffect, useMemo, useState } from 'react';
 import { TimeAgo } from '@/hooks/Mapper/components/ui-kit';
-import { kgToTons } from '@/hooks/Mapper/utils/kgToTons.ts';
 import { getShipName } from './PassageCard/getShipName.ts';
 
 type PassageMassDialogProps = {
@@ -15,8 +14,11 @@ type PassageMassDialogProps = {
   onSave: (mass: number, massStatus: MassState | null) => Promise<void> | void;
 };
 
-const getPassageMass = (passage: Passage) => {
-  return passage.mass ?? parseInt(passage.ship.ship_type_info.mass);
+const KG_PER_TON = 1000;
+
+const getPassageMassTons = (passage: Passage) => {
+  const massKg = passage.mass ?? parseInt(passage.ship.ship_type_info.mass);
+  return Math.round(massKg / KG_PER_TON);
 };
 
 const parseMassValue = (value: string) => {
@@ -42,7 +44,7 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
       return;
     }
 
-    setMassValue(`${getPassageMass(passage)}`);
+    setMassValue(`${getPassageMassTons(passage)}`);
     setMassStatus(null);
   }, [passage]);
 
@@ -56,7 +58,7 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
     setSaving(true);
 
     try {
-      await onSave(parsedMass, massStatus);
+      await onSave(parsedMass * KG_PER_TON, massStatus);
     } finally {
       setSaving(false);
     }
@@ -121,19 +123,21 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
             </div>
 
             <label className="text-sm text-stone-300" htmlFor="passage-mass">
-              Passage mass
+              Passage mass in tonnes
             </label>
 
             <InputText
               id="passage-mass"
               value={massValue}
               onChange={event => setMassValue(event.target.value.replace(/[^\d]/g, ''))}
-              placeholder="Mass in kg"
+              placeholder="Mass in tonnes"
               className="w-full"
             />
 
             <div className="text-xs text-stone-500">
-              {parsedMass == null ? 'Enter mass in kg' : `Preview: ${kgToTons(parsedMass)}`}
+              {parsedMass == null
+                ? 'Enter whole tonnes'
+                : `Stored as ${new Intl.NumberFormat().format(parsedMass * KG_PER_TON)} kg`}
             </div>
           </div>
 
