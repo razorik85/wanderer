@@ -345,6 +345,8 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
           nil
       end
 
+    connection_closed = Map.get(event, "connection_closed") == true
+
     case WandererAppWeb.HandlerAuth.authorize_passage(passage_id, map_id) do
       {:ok, passage} ->
         owns_passage? =
@@ -367,6 +369,14 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
                  passage,
                  Map.put(confirmation, :mass, mass_value)
                ) do
+            {:ok, _updated_passage} when not is_nil(mass_value) and connection_closed ->
+              if latest_connection_passage?(map_id, passage) do
+                WandererApp.Map.Server.delete_connection(map_id, %{
+                  solar_system_source_id: passage.solar_system_source_id,
+                  solar_system_target_id: passage.solar_system_target_id
+                })
+              end
+
             {:ok, _updated_passage}
             when not is_nil(mass_value) and not is_nil(mass_status) ->
               WandererApp.Map.Server.update_connection_mass_status(map_id, %{
@@ -395,6 +405,22 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
 
   def handle_ui_event(event, body, socket),
     do: MapCoreEventHandler.handle_ui_event(event, body, socket)
+
+  defp latest_connection_passage?(map_id, passage) do
+    case WandererApp.MapChainPassagesRepo.by_connection(
+           map_id,
+           passage.solar_system_source_id,
+           passage.solar_system_target_id
+         ) do
+      {:ok, passages} when passages != [] ->
+        passages
+        |> Enum.max_by(&DateTime.to_unix(&1.inserted_at, :microsecond))
+        |> Map.get(:id) == passage.id
+
+      _ ->
+        false
+    end
+  end
 
   defp get_connection_passages(map_id, from, to) do
     {:ok, passages} = WandererApp.MapChainPassagesRepo.by_connection(map_id, from, to)

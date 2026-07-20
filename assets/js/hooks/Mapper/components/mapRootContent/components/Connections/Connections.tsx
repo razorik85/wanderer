@@ -239,7 +239,7 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
   }, []);
 
   const handleSavePassageMass = useCallback(
-    async (mass: number, massStatus: MassState | null) => {
+    async (mass: number, massStatus: MassState | null, connectionClosed: boolean) => {
       if (!editingPassage) {
         return;
       }
@@ -252,6 +252,7 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
           id: editingPassage.id,
           mass,
           mass_status: massStatus,
+          connection_closed: connectionClosed,
         },
       });
 
@@ -265,7 +266,7 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
         ),
       );
 
-      if (massStatus != null) {
+      if (massStatus != null && !connectionClosed) {
         setObservedMassStatusOverride(massStatus);
       }
 
@@ -537,6 +538,7 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
       <PassageMassDialog
         passage={editingPassage}
         visible={editingPassage != null}
+        allowConnectionClosed={editingPassage?.id === preparedPassages[0]?.id}
         onHide={handleHidePassageDialog}
         onSave={handleSavePassageMass}
       />

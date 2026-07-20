@@ -4,6 +4,8 @@ defmodule WandererApp.Map.Server.MassTrackingLifecycleTest do
   alias WandererApp.Map.Server.ConnectionsImpl
 
   test "connection repository exposes all dynamically selected mass tracking updates" do
+    Code.ensure_loaded!(WandererApp.MapConnectionRepo)
+
     assert function_exported?(WandererApp.MapConnectionRepo, :update_mass_tracking, 2)
     assert function_exported?(WandererApp.MapConnectionRepo, :update_wormhole_type, 2)
   end

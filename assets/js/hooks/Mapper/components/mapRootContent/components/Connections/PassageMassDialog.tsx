@@ -13,9 +13,12 @@ import { ShipMassTemplate } from '@/hooks/Mapper/types/options.ts';
 type PassageMassDialogProps = {
   passage: Passage | null;
   visible: boolean;
+  allowConnectionClosed: boolean;
   onHide: () => void;
-  onSave: (mass: number, massStatus: MassState | null) => Promise<void> | void;
+  onSave: (mass: number, massStatus: MassState | null, connectionClosed: boolean) => Promise<void> | void;
 };
+
+type ObservedStatus = MassState | 'closed' | null;
 
 const KG_PER_TON = 1000;
 
@@ -35,11 +38,17 @@ const parseMassValue = (value: string) => {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 
-export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageMassDialogProps) => {
+export const PassageMassDialog = ({
+  passage,
+  visible,
+  allowConnectionClosed,
+  onHide,
+  onSave,
+}: PassageMassDialogProps) => {
   const { outCommand } = useMapRootState();
   const [massValue, setMassValue] = useState('');
   const [saving, setSaving] = useState(false);
-  const [massStatus, setMassStatus] = useState<MassState | null>(null);
+  const [observedStatus, setObservedStatus] = useState<ObservedStatus>(null);
   const [massTemplates, setMassTemplates] = useState<ShipMassTemplate[]>([]);
 
   useEffect(() => {
@@ -50,7 +59,7 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
     }
 
     setMassValue(`${getPassageMassTons(passage)}`);
-    setMassStatus(null);
+    setObservedStatus(null);
   }, [passage]);
 
   useEffect(() => {
@@ -78,7 +87,11 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
     setSaving(true);
 
     try {
-      await onSave(parsedMass * KG_PER_TON, massStatus);
+      await onSave(
+        parsedMass * KG_PER_TON,
+        typeof observedStatus === 'number' ? observedStatus : null,
+        observedStatus === 'closed',
+      );
     } finally {
       setSaving(false);
     }
@@ -187,9 +200,15 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
             </label>
             <select
               id="passage-mass-status"
-              value={massStatus ?? ''}
+              value={observedStatus ?? ''}
               onChange={event =>
-                setMassStatus(event.target.value === '' ? null : (Number(event.target.value) as MassState))
+                setObservedStatus(
+                  event.target.value === ''
+                    ? null
+                    : event.target.value === 'closed'
+                      ? 'closed'
+                      : (Number(event.target.value) as MassState),
+                )
               }
               className="h-10 rounded border border-stone-700 bg-stone-900 px-3 text-sm text-stone-200"
             >
@@ -197,8 +216,13 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
               <option value={MassState.normal}>Stable</option>
               <option value={MassState.half}>Reduced</option>
               <option value={MassState.verge}>Critical</option>
+              {allowConnectionClosed && <option value="closed">Closed</option>}
             </select>
-            <div className="text-xs text-stone-500">Only select a status when the in-game description changed.</div>
+            <div className="text-xs text-stone-500">
+              {allowConnectionClosed
+                ? 'Select Closed only when this passage collapsed the wormhole. The connection will be removed.'
+                : 'Only the latest passage can be marked as collapsed.'}
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">

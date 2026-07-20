@@ -88,7 +88,7 @@ export const MapWrapper = () => {
   }, [update]);
 
   const handleSavePassageMass = useCallback(
-    async (mass: number, massStatus: MassState | null) => {
+    async (mass: number, massStatus: MassState | null, connectionClosed: boolean) => {
       if (!passageMassRequired) {
         return;
       }
@@ -99,6 +99,7 @@ export const MapWrapper = () => {
           id: passageMassRequired.id,
           mass,
           mass_status: massStatus,
+          connection_closed: connectionClosed,
         },
       });
 
@@ -342,6 +343,7 @@ export const MapWrapper = () => {
       <PassageMassDialog
         passage={passageMassRequired}
         visible={passageMassRequired != null && linkSignatureToSystem == null}
+        allowConnectionClosed
         onHide={handleHidePassageMassDialog}
         onSave={handleSavePassageMass}
       />
