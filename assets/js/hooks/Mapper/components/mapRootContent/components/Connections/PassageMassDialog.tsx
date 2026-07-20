@@ -54,7 +54,7 @@ export const PassageMassDialog = ({
   useEffect(() => {
     if (!passage) {
       setMassValue('');
-      setMassStatus(null);
+      setObservedStatus(null);
       return;
     }
 
