@@ -15,6 +15,7 @@ export const DEFAULT_REMOTE_SETTINGS = {
   [UserSettingsRemoteProps.system_custom_label_name]: '',
   [UserSettingsRemoteProps.bookmark_return_hole_ignore]: false,
   [UserSettingsRemoteProps.bookmark_return_hole_symbol]: '',
+  [UserSettingsRemoteProps.mass_templates]: [],
 };
 
 export const AUTO_FORMAT_OPTIONS = [
@@ -38,6 +39,7 @@ export const UserSettingsRemoteList = [
   UserSettingsRemoteProps.system_custom_label_name,
   UserSettingsRemoteProps.bookmark_return_hole_ignore,
   UserSettingsRemoteProps.bookmark_return_hole_symbol,
+  UserSettingsRemoteProps.mass_templates,
 ];
 
 // export const COMMON_CHECKBOXES_PROPS: SettingsListItem[] = [

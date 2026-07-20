@@ -11,7 +11,8 @@ defmodule WandererApp.MapUserSettingsRepo do
     "system_auto_tag" => "",
     "system_custom_label_name" => "",
     "bookmark_return_hole_ignore" => false,
-    "bookmark_return_hole_symbol" => ""
+    "bookmark_return_hole_symbol" => "",
+    "mass_templates" => []
   }
 
   def get(map_id, user_id) do
@@ -82,7 +83,9 @@ defmodule WandererApp.MapUserSettingsRepo do
   end
 
   def to_form_data(nil), do: {:ok, @default_form_data}
-  def to_form_data(%{settings: settings} = _user_settings), do: {:ok, Jason.decode!(settings)}
+
+  def to_form_data(%{settings: settings} = _user_settings),
+    do: {:ok, Map.merge(@default_form_data, Jason.decode!(settings))}
 
   def to_form_data!(user_settings) do
     {:ok, data} = to_form_data(user_settings)

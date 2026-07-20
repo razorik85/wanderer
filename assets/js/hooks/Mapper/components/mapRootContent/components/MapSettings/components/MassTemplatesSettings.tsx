@@ -4,6 +4,7 @@ import { OutCommand } from '@/hooks/Mapper/types';
 import { ShipMassTemplate } from '@/hooks/Mapper/types/options.ts';
 import { InputText } from 'primereact/inputtext';
 import { useEffect, useMemo, useState } from 'react';
+import { useMapSettings } from '../MapSettingsProvider.tsx';
 
 type ShipSearchResult = {
   ship_type_id: number;
@@ -14,12 +15,9 @@ type ShipSearchResult = {
 const onlyDigits = (value: string) => value.replace(/[^\d]/g, '');
 
 export const MassTemplatesSettings = () => {
-  const {
-    data: { options },
-    outCommand,
-    update,
-  } = useMapRootState();
-  const [templates, setTemplates] = useState<ShipMassTemplate[]>(options.mass_templates ?? []);
+  const { outCommand } = useMapRootState();
+  const { settings, updateSetting } = useMapSettings();
+  const [templates, setTemplates] = useState<ShipMassTemplate[]>(settings.mass_templates ?? []);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ShipSearchResult[]>([]);
   const [selectedShip, setSelectedShip] = useState<ShipSearchResult | null>(null);
@@ -30,7 +28,7 @@ export const MassTemplatesSettings = () => {
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  useEffect(() => setTemplates(options.mass_templates ?? []), [options.mass_templates]);
+  useEffect(() => setTemplates(settings.mass_templates ?? []), [settings.mass_templates]);
 
   const canAdd = selectedShip != null && label.trim() !== '' && Number(massTons) > 0;
   const groupedTemplates = useMemo(() => {
@@ -93,19 +91,10 @@ export const MassTemplatesSettings = () => {
     setSaving(true);
     setMessage(null);
     try {
-      const response = await outCommand<{ success: boolean; templates?: ShipMassTemplate[]; error?: string }>({
-        type: OutCommand.updateMassTemplates,
-        data: { templates },
-      });
-
-      if (!response.success || !response.templates) {
-        setMessage(response.error ?? 'Could not save mass presets.');
-        return;
-      }
-
-      setTemplates(response.templates);
-      update({ options: { ...options, mass_templates: response.templates } });
-      setMessage('Mass presets saved for this map.');
+      await updateSetting('mass_templates', templates);
+      setMessage('Your mass presets were saved for this map.');
+    } catch {
+      setMessage('Could not save mass presets.');
     } finally {
       setSaving(false);
     }
@@ -114,10 +103,10 @@ export const MassTemplatesSettings = () => {
   return (
     <div className="flex h-full flex-col gap-3 overflow-y-auto pr-2 custom-scrollbar">
       <div>
-        <div className="text-sm font-medium text-stone-200">Shared ship mass presets</div>
+        <div className="text-sm font-medium text-stone-200">Personal ship mass presets</div>
         <div className="mt-1 text-xs text-stone-500">
-          Add freely named fit or propulsion states. Values are entered in whole tonnes and shared with everyone on this
-          map.
+          Add freely named fit or propulsion states. Values are entered in whole tonnes and are visible only to you on
+          this map.
         </div>
       </div>
 

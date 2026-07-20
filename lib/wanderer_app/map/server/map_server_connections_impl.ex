@@ -307,7 +307,9 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
         update_connection(map_id, :update_mass_status, [:mass_status], connection_update, fn
           %{mass_status: old_mass_status}, %{mass_status: mass_status} = updated_connection ->
             if mass_status != old_mass_status do
-              maybe_update_linked_signature_mass_status(map_id, updated_connection)
+              Task.start(fn ->
+                maybe_update_linked_signature_mass_status(map_id, updated_connection)
+              end)
             end
         end)
 

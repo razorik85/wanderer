@@ -18,5 +18,4 @@ export type MapOptions = {
   show_linked_signature_id_temp_name: StringBoolean;
   show_temp_system_name: StringBoolean;
   store_custom_labels: StringBoolean;
-  mass_templates: ShipMassTemplate[];
 };

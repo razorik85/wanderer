@@ -24,10 +24,13 @@ import { Dropdown } from 'primereact/dropdown';
 import { InputText } from 'primereact/inputtext';
 import { useMapRootState } from '@/hooks/Mapper/mapRootProvider';
 import { WithChildren } from '@/hooks/Mapper/types/common.ts';
+import { ShipMassTemplate } from '@/hooks/Mapper/types/options.ts';
+
+type SettingValue = boolean | string | Record<string, string> | ShipMassTemplate[];
 
 type MapSettingsContextType = {
   renderSettingItem: (item: SettingsListItem) => ReactNode;
-  updateSetting: (prop: keyof UserSettings, value: boolean | string | Record<string, string>) => Promise<void>;
+  updateSetting: (prop: keyof UserSettings, value: SettingValue) => Promise<void>;
   setUserRemoteSettings: Dispatch<SetStateAction<UserSettingsRemote>>;
   settings: UserSettings;
 };
@@ -54,29 +57,26 @@ export const MapSettingsProvider = ({ children }: WithChildren) => {
   const refVars = useRef({ mergedSettings, userRemoteSettings, interfaceSettings, outCommand, setInterfaceSettings });
   refVars.current = { mergedSettings, userRemoteSettings, interfaceSettings, outCommand, setInterfaceSettings };
 
-  const handleSettingChange = useCallback(
-    async (prop: keyof UserSettings, value: boolean | string | Record<string, string>) => {
-      const { userRemoteSettings, interfaceSettings, outCommand, setInterfaceSettings } = refVars.current;
+  const handleSettingChange = useCallback(async (prop: keyof UserSettings, value: SettingValue) => {
+    const { userRemoteSettings, interfaceSettings, outCommand, setInterfaceSettings } = refVars.current;
 
-      if (UserSettingsRemoteList.includes(prop as any)) {
-        const newRemoteSettings = {
-          ...userRemoteSettings,
-          [prop]: value,
-        };
-        await outCommand({
-          type: OutCommand.updateUserSettings,
-          data: newRemoteSettings,
-        });
-        setUserRemoteSettings(newRemoteSettings);
-      } else {
-        setInterfaceSettings({
-          ...interfaceSettings,
-          [prop]: value,
-        });
-      }
-    },
-    [],
-  );
+    if (UserSettingsRemoteList.includes(prop as any)) {
+      const newRemoteSettings = {
+        ...userRemoteSettings,
+        [prop]: value,
+      };
+      await outCommand({
+        type: OutCommand.updateUserSettings,
+        data: newRemoteSettings,
+      });
+      setUserRemoteSettings(newRemoteSettings);
+    } else {
+      setInterfaceSettings({
+        ...interfaceSettings,
+        [prop]: value,
+      });
+    }
+  }, []);
 
   const renderSettingItem = useCallback(
     (item: SettingsListItem) => {

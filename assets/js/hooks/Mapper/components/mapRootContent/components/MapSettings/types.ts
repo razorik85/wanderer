@@ -1,4 +1,5 @@
 import { InterfaceStoredSettings } from '@/hooks/Mapper/mapRootProvider/types.ts';
+import { ShipMassTemplate } from '@/hooks/Mapper/types/options.ts';
 
 export enum UserSettingsRemoteProps {
   link_signature_on_splash = 'link_signature_on_splash',
@@ -13,6 +14,7 @@ export enum UserSettingsRemoteProps {
   system_custom_label_name = 'system_custom_label_name',
   bookmark_return_hole_ignore = 'bookmark_return_hole_ignore',
   bookmark_return_hole_symbol = 'bookmark_return_hole_symbol',
+  mass_templates = 'mass_templates',
 }
 
 export type UserSettingsRemote = {
@@ -28,6 +30,7 @@ export type UserSettingsRemote = {
   system_custom_label_name: string;
   bookmark_return_hole_ignore: boolean;
   bookmark_return_hole_symbol: string;
+  mass_templates: ShipMassTemplate[];
 };
 
 export type UserSettings = UserSettingsRemote & InterfaceStoredSettings;

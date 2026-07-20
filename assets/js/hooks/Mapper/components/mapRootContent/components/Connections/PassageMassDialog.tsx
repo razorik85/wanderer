@@ -8,6 +8,7 @@ import { TimeAgo } from '@/hooks/Mapper/components/ui-kit';
 import { getShipName } from './PassageCard/getShipName.ts';
 import { useMapRootState } from '@/hooks/Mapper/mapRootProvider';
 import { getShipMassTemplates } from './massTemplates.ts';
+import { ShipMassTemplate } from '@/hooks/Mapper/types/options.ts';
 
 type PassageMassDialogProps = {
   passage: Passage | null;
@@ -35,12 +36,11 @@ const parseMassValue = (value: string) => {
 };
 
 export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageMassDialogProps) => {
-  const {
-    data: { options },
-  } = useMapRootState();
+  const { outCommand } = useMapRootState();
   const [massValue, setMassValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [massStatus, setMassStatus] = useState<MassState | null>(null);
+  const [massTemplates, setMassTemplates] = useState<ShipMassTemplate[]>([]);
 
   useEffect(() => {
     if (!passage) {
@@ -53,10 +53,21 @@ export const PassageMassDialog = ({ passage, visible, onHide, onSave }: PassageM
     setMassStatus(null);
   }, [passage]);
 
+  useEffect(() => {
+    if (!visible) return;
+
+    outCommand<{ user_settings?: { mass_templates?: ShipMassTemplate[] } }>({
+      type: OutCommand.getUserSettings,
+      data: null,
+    })
+      .then(response => setMassTemplates(response.user_settings?.mass_templates ?? []))
+      .catch(() => setMassTemplates([]));
+  }, [outCommand, visible]);
+
   const parsedMass = useMemo(() => parseMassValue(massValue), [massValue]);
   const matchingTemplates = useMemo(
-    () => (passage ? getShipMassTemplates(options.mass_templates, passage.ship.ship_type_id) : []),
-    [options.mass_templates, passage],
+    () => (passage ? getShipMassTemplates(massTemplates, passage.ship.ship_type_id) : []),
+    [massTemplates, passage],
   );
 
   const handleSave = async () => {

@@ -244,8 +244,10 @@ defmodule WandererAppWeb.MapCoreEventHandler do
         "system_auto_tag",
         "system_custom_label_name",
         "bookmark_return_hole_ignore",
-        "bookmark_return_hole_symbol"
+        "bookmark_return_hole_symbol",
+        "mass_templates"
       ])
+      |> Map.update("mass_templates", [], &sanitize_mass_templates/1)
       |> Jason.encode!()
 
     {:ok, user_settings} =
@@ -341,43 +343,6 @@ defmodule WandererAppWeb.MapCoreEventHandler do
     {:reply, %{ships: ships}, socket}
   end
 
-  def handle_ui_event(
-        "update_mass_templates",
-        %{"templates" => templates},
-        %{
-          assigns: %{
-            map_id: map_id,
-            user_permissions: %{admin_map: true}
-          }
-        } = socket
-      )
-      when is_list(templates) do
-    with {:ok, templates} <- validate_mass_templates(templates),
-         {:ok, map} <- WandererApp.MapRepo.get(map_id),
-         {:ok, options} <- WandererApp.MapRepo.options_to_form_data(map),
-         updated_options <- Map.put(options, "mass_templates", templates),
-         {:ok, _updated_map} <- WandererApp.MapRepo.update_options(map, updated_options) do
-      Phoenix.PubSub.broadcast(
-        WandererApp.PubSub,
-        "maps:#{map_id}",
-        {:options_updated, map_id, updated_options}
-      )
-
-      WandererApp.Map.Server.Impl.broadcast!(map_id, :update_map, %{
-        options: updated_options
-      })
-
-      {:reply, %{success: true, templates: templates}, socket}
-    else
-      {:error, reason} ->
-        Logger.warning("Failed to update mass templates: #{inspect(reason)}")
-        {:reply, %{success: false, error: "Invalid mass templates"}, socket}
-    end
-  end
-
-  def handle_ui_event("update_mass_templates", _body, socket),
-    do: {:reply, %{success: false, error: "unauthorized"}, socket}
-
   def handle_ui_event("noop", _, socket), do: {:noreply, socket}
 
   def handle_ui_event(
@@ -413,40 +378,6 @@ defmodule WandererAppWeb.MapCoreEventHandler do
     {:noreply, socket}
   end
 
-  defp validate_mass_templates(templates) when length(templates) <= 100 do
-    templates
-    |> Enum.reduce_while({:ok, []}, fn template, {:ok, acc} ->
-      with %{
-             "ship_type_id" => ship_type_id,
-             "ship_type_name" => ship_type_name,
-             "label" => label,
-             "mass_tons" => mass_tons
-           } <- template,
-           true <- is_integer(ship_type_id) and ship_type_id > 0,
-           true <-
-             is_binary(ship_type_name) and String.length(String.trim(ship_type_name)) in 1..100,
-           true <- is_binary(label) and String.length(String.trim(label)) in 1..40,
-           true <- is_integer(mass_tons) and mass_tons > 0 and mass_tons <= 10_000_000 do
-        sanitized = %{
-          "ship_type_id" => ship_type_id,
-          "ship_type_name" => String.trim(ship_type_name),
-          "label" => String.trim(label),
-          "mass_tons" => mass_tons
-        }
-
-        {:cont, {:ok, [sanitized | acc]}}
-      else
-        _ -> {:halt, {:error, :invalid_template}}
-      end
-    end)
-    |> case do
-      {:ok, validated} -> {:ok, Enum.reverse(validated)}
-      error -> error
-    end
-  end
-
-  defp validate_mass_templates(_), do: {:error, :too_many_templates}
-
   defp parse_mass(value) when is_integer(value), do: value
   defp parse_mass(value) when is_float(value), do: value
 
@@ -458,6 +389,42 @@ defmodule WandererAppWeb.MapCoreEventHandler do
   end
 
   defp parse_mass(_), do: 0
+
+  defp sanitize_mass_templates(templates) when is_list(templates) do
+    templates
+    |> Enum.take(100)
+    |> Enum.flat_map(fn
+      %{
+        "ship_type_id" => ship_type_id,
+        "ship_type_name" => ship_type_name,
+        "label" => label,
+        "mass_tons" => mass_tons
+      }
+      when is_integer(ship_type_id) and ship_type_id > 0 and is_binary(ship_type_name) and
+             is_binary(label) and is_integer(mass_tons) and mass_tons > 0 and
+             mass_tons <= 10_000_000 ->
+        ship_type_name = String.trim(ship_type_name) |> String.slice(0, 100)
+        label = String.trim(label) |> String.slice(0, 40)
+
+        if ship_type_name == "" or label == "" do
+          []
+        else
+          [
+            %{
+              "ship_type_id" => ship_type_id,
+              "ship_type_name" => ship_type_name,
+              "label" => label,
+              "mass_tons" => mass_tons
+            }
+          ]
+        end
+
+      _ ->
+        []
+    end)
+  end
+
+  defp sanitize_mass_templates(_), do: []
 
   defp search_ship_types(query, current_user) do
     case Enum.find(current_user.characters, &is_binary(&1.id)) do

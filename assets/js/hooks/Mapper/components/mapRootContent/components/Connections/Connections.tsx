@@ -224,6 +224,12 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
     return passages.filter(passage => passage.mass_confirmed_at == null).length;
   }, [passages]);
 
+  const modelConsistency = !reconciledRange.compatible
+    ? { label: 'Conflict', className: 'text-red-400' }
+    : unconfirmedPassages > 0
+      ? { label: 'Includes estimates', className: 'text-amber-300' }
+      : { label: 'Internally consistent', className: 'text-emerald-300' };
+
   const handleEditPassage = useCallback((passage: PassageWithSourceTarget) => {
     setEditingPassage(passage);
   }, []);
@@ -395,9 +401,14 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
 
                 {massBalance.remainingMinimum != null && massBalance.remainingMaximum != null ? (
                   <>
-                    <span className="text-stone-400">Remaining range</span>
+                    <span
+                      className="text-stone-400"
+                      title="Calculated from tracked passages, regeneration, and the wormhole's capacity variance."
+                    >
+                      Tracked-model estimate
+                    </span>
                     <span className="text-right text-stone-200">
-                      {kgToTons(massBalance.remainingMinimum)} - {kgToTons(massBalance.remainingMaximum)}
+                      ≈ {kgToTons(massBalance.remainingMinimum)} - {kgToTons(massBalance.remainingMaximum)}
                     </span>
                     <span className="text-stone-400">Projected status</span>
                     <span
@@ -416,12 +427,21 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
                     reconciledRange.minimum != null &&
                     reconciledRange.maximum != null ? (
                       <>
-                        <span className="text-stone-400">Constrained range</span>
+                        <span
+                          className="text-stone-400"
+                          title="The tracked-model estimate narrowed by the last observed in-game wormhole status."
+                        >
+                          Status-adjusted estimate
+                        </span>
                         <span className="text-right text-emerald-300">
-                          {kgToTons(reconciledRange.minimum)} - {kgToTons(reconciledRange.maximum)}
+                          ≈ {kgToTons(reconciledRange.minimum)} - {kgToTons(reconciledRange.maximum)}
                         </span>
                       </>
                     ) : null}
+                    <span className="text-stone-400">Model consistency</span>
+                    <span className={clsx('text-right', modelConsistency.className)}>{modelConsistency.label}</span>
+                    <span className="text-stone-400">Tracking coverage</span>
+                    <span className="text-right text-amber-300">Not verifiable</span>
                     {massUpdateInFlight && (
                       <span className="col-span-2 text-right text-[11px] text-stone-500">Syncing with server...</span>
                     )}
@@ -436,21 +456,32 @@ export const Connections = ({ selectedConnection, onHide }: OnTheMapProps) => {
               </div>
 
               {wormholeNominalMass && (
-                <div className="mt-3 h-2 overflow-hidden rounded bg-neutral-800">
-                  <div className="flex h-full">
-                    <div
-                      className="shrink-0 bg-emerald-500"
-                      style={{
-                        width: `${Math.min((massBalance.confirmedMass / wormholeNominalMass) * 100, 100)}%`,
-                      }}
-                    />
-                    <div
-                      className="shrink-0 bg-amber-500"
-                      style={{
-                        width: `${Math.min((massBalance.estimatedOpenMass / wormholeNominalMass) * 100, 100)}%`,
-                      }}
-                    />
+                <div className="mt-3">
+                  <div className="mb-1 text-[11px] text-stone-500">Tracked depletion vs nominal capacity</div>
+                  <div className="h-2 overflow-hidden rounded bg-neutral-800">
+                    <div className="flex h-full">
+                      <div
+                        className="shrink-0 bg-emerald-500"
+                        style={{
+                          width: `${Math.min((massBalance.confirmedMass / wormholeNominalMass) * 100, 100)}%`,
+                        }}
+                      />
+                      <div
+                        className="shrink-0 bg-amber-500"
+                        style={{
+                          width: `${Math.min((massBalance.estimatedOpenMass / wormholeNominalMass) * 100, 100)}%`,
+                        }}
+                      />
+                    </div>
                   </div>
+                </div>
+              )}
+
+              {wormholeNominalMass && (
+                <div className="mt-3 rounded border border-sky-500/30 bg-sky-500/10 px-2 py-2 text-sky-200">
+                  <span className="pi pi-info-circle mr-1.5" />
+                  Estimate only, not guaranteed. It assumes all relevant passages were tracked and the observed status
+                  is still current. External or missed passages cannot be detected automatically.
                 </div>
               )}
 

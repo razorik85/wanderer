@@ -100,11 +100,9 @@ export const MapSettingsComp = ({ visible, onHide }: MapSettingsProps) => {
               <WidgetsSettings />
             </TabPanel>
 
-            {isAdmin && (
-              <TabPanel header="Mass presets" className="h-full" headerClassName={styles.verticalTabHeader}>
-                <MassTemplatesSettings />
-              </TabPanel>
-            )}
+            <TabPanel header="Mass presets" className="h-full" headerClassName={styles.verticalTabHeader}>
+              <MassTemplatesSettings />
+            </TabPanel>
 
             <TabPanel header="Import/Export" className="h-full" headerClassName={styles.verticalTabHeader}>
               <ImportExport />
