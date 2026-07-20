@@ -3,6 +3,11 @@ defmodule WandererApp.Map.Server.MassTrackingLifecycleTest do
 
   alias WandererApp.Map.Server.ConnectionsImpl
 
+  test "connection repository exposes all dynamically selected mass tracking updates" do
+    assert function_exported?(WandererApp.MapConnectionRepo, :update_mass_tracking, 2)
+    assert function_exported?(WandererApp.MapConnectionRepo, :update_wormhole_type, 2)
+  end
+
   test "keeps the current lifecycle when a signature side is learned for the first time" do
     current_start = ~U[2026-07-19 10:00:00Z]
     now = ~U[2026-07-19 12:00:00Z]

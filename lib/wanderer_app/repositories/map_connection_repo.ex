@@ -81,6 +81,11 @@ defmodule WandererApp.MapConnectionRepo do
       connection
       |> WandererApp.Api.MapConnection.update_mass_status(update)
 
+  def update_mass_tracking(connection, update),
+    do:
+      connection
+      |> WandererApp.Api.MapConnection.update_mass_tracking(update)
+
   def update_ship_size_type(connection, update),
     do:
       connection
@@ -95,6 +100,11 @@ defmodule WandererApp.MapConnectionRepo do
     do:
       connection
       |> WandererApp.Api.MapConnection.update_custom_info(update)
+
+  def update_wormhole_type(connection, update),
+    do:
+      connection
+      |> WandererApp.Api.MapConnection.update_wormhole_type(update)
 
   def get_by_id(map_id, id) do
     # Use read_by_map action which doesn't have the FilterConnectionsByActorMap preparation

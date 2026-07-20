@@ -1,5 +1,5 @@
 import { WdButton, WdTooltipWrapper } from '@/hooks/Mapper/components/ui-kit';
-import { MassState, Passage } from '@/hooks/Mapper/types';
+import { MassState, OutCommand, Passage } from '@/hooks/Mapper/types';
 import { Dialog } from 'primereact/dialog';
 import { InputText } from 'primereact/inputtext';
 import clsx from 'clsx';
