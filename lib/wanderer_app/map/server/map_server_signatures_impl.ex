@@ -48,6 +48,93 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
 
   def update_signatures(_map_id, _), do: :ok
 
+  def close_connection(
+        map_id,
+        %{
+          solar_system_source_id: source_id,
+          solar_system_target_id: target_id,
+          character_id: character_id,
+          user_id: user_id
+        }
+      ) do
+    with {:ok, source_system} <-
+           MapSystem.read_by_map_and_solar_system(%{
+             map_id: map_id,
+             solar_system_id: source_id
+           }),
+         {:ok, target_system} <-
+           MapSystem.read_by_map_and_solar_system(%{
+             map_id: map_id,
+             solar_system_id: target_id
+           }) do
+      source_signatures = linked_signatures(source_system.id, target_id)
+      target_signatures = linked_signatures(target_system.id, source_id)
+
+      cond do
+        source_signatures != [] ->
+          remove_signatures(
+            map_id,
+            source_system,
+            source_signatures,
+            character_id,
+            user_id
+          )
+
+        target_signatures != [] ->
+          remove_signatures(
+            map_id,
+            target_system,
+            target_signatures,
+            character_id,
+            user_id
+          )
+
+        true ->
+          :ok
+      end
+    end
+
+    ConnectionsImpl.delete_connection(map_id, %{
+      solar_system_source_id: source_id,
+      solar_system_target_id: target_id
+    })
+  end
+
+  defp linked_signatures(system_id, linked_system_id) do
+    system_id
+    |> MapSystemSignature.by_system_id!()
+    |> Enum.filter(&(&1.linked_system_id == linked_system_id))
+  end
+
+  defp remove_signatures(map_id, system, signatures, character_id, user_id) do
+    removed_params =
+      Enum.map(signatures, fn signature ->
+        %{
+          "eve_id" => signature.eve_id,
+          "name" => signature.name,
+          "temporary_name" => signature.temporary_name,
+          "description" => signature.description,
+          "kind" => signature.kind,
+          "group" => signature.group,
+          "type" => signature.type,
+          "custom_info" => signature.custom_info,
+          "character_eve_id" => signature.character_eve_id,
+          "linked_system_id" => signature.linked_system_id
+        }
+      end)
+
+    do_update_signatures(
+      map_id,
+      system,
+      character_id,
+      user_id,
+      true,
+      [],
+      [],
+      removed_params
+    )
+  end
+
   defp do_update_signatures(
          map_id,
          system,

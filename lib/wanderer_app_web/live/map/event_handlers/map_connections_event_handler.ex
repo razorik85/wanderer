@@ -371,9 +371,11 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
                ) do
             {:ok, _updated_passage} when not is_nil(mass_value) and connection_closed ->
               if latest_connection_passage?(map_id, passage) do
-                WandererApp.Map.Server.delete_connection(map_id, %{
+                WandererApp.Map.Server.close_connection(map_id, %{
                   solar_system_source_id: passage.solar_system_source_id,
-                  solar_system_target_id: passage.solar_system_target_id
+                  solar_system_target_id: passage.solar_system_target_id,
+                  character_id: passage.character_id,
+                  user_id: current_user.id
                 })
               end
 

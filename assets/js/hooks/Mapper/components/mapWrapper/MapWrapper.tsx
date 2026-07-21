@@ -51,6 +51,7 @@ export const MapWrapper = () => {
       hubs,
       userHubs,
       systems,
+      connections,
       linkSignatureToSystem,
       passageMassRequired,
       systemSignatures,
@@ -82,6 +83,12 @@ export const MapWrapper = () => {
   const [openCustomLabel, setOpenCustomLabel] = useState<string | null>(null);
   const [openAddSystem, setOpenAddSystem] = useState<XYPosition | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<SolarSystemConnection | null>(null);
+
+  useEffect(() => {
+    if (selectedConnection && !connections.some(connection => connection.id === selectedConnection.id)) {
+      setSelectedConnection(null);
+    }
+  }, [connections, selectedConnection]);
 
   const handleHidePassageMassDialog = useCallback(() => {
     update({ passageMassRequired: null });

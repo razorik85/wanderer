@@ -260,6 +260,7 @@ defmodule WandererApp.Map.Server.Impl do
   defdelegate update_connection_locked(map_id, connection_update), to: ConnectionsImpl
   defdelegate update_connection_custom_info(map_id, connection_update), to: ConnectionsImpl
   defdelegate update_signatures(map_id, signatures_update), to: SignaturesImpl
+  defdelegate close_connection(map_id, connection_info), to: SignaturesImpl
 
   def import_settings(map_id, settings, user_id) do
     WandererApp.Cache.put(
