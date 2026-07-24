@@ -24,4 +24,17 @@ describe('getSignatureCounts', () => {
       { group: SignatureGroup.RelicSite, count: 1 },
     ]);
   });
+
+  it('only returns enabled signature groups', () => {
+    expect(
+      getSignatureCounts(
+        [
+          signature('AAA-001', SignatureGroup.Wormhole),
+          signature('AAA-002', SignatureGroup.RelicSite),
+          signature('AAA-003', SignatureGroup.DataSite),
+        ],
+        [SignatureGroup.RelicSite],
+      ),
+    ).toEqual([{ group: SignatureGroup.RelicSite, count: 1 }]);
+  });
 });

@@ -1,5 +1,6 @@
 import { InterfaceStoredSettingsProps } from '@/hooks/Mapper/mapRootProvider';
 import { AvailableThemes, MiniMapPlacement, PingsPlacement } from '@/hooks/Mapper/mapRootProvider/types.ts';
+import { SignatureGroup } from '@/hooks/Mapper/types';
 import { SettingsListItem, UserSettingsRemoteProps } from './types.ts';
 
 export const DEFAULT_REMOTE_SETTINGS = {
@@ -80,6 +81,48 @@ export const SIGNATURES_CHECKBOXES_PROPS: SettingsListItem[] = [
     prop: InterfaceStoredSettingsProps.isShowSignatureCounts,
     label: 'Show signature counts on systems',
     type: 'checkbox',
+  },
+  {
+    prop: InterfaceStoredSettingsProps.signatureCountWormholes,
+    label: SignatureGroup.Wormhole,
+    type: 'checkbox',
+    dependsOn: InterfaceStoredSettingsProps.isShowSignatureCounts,
+  },
+  {
+    prop: InterfaceStoredSettingsProps.signatureCountRelicSites,
+    label: SignatureGroup.RelicSite,
+    type: 'checkbox',
+    dependsOn: InterfaceStoredSettingsProps.isShowSignatureCounts,
+  },
+  {
+    prop: InterfaceStoredSettingsProps.signatureCountDataSites,
+    label: SignatureGroup.DataSite,
+    type: 'checkbox',
+    dependsOn: InterfaceStoredSettingsProps.isShowSignatureCounts,
+  },
+  {
+    prop: InterfaceStoredSettingsProps.signatureCountGasSites,
+    label: SignatureGroup.GasSite,
+    type: 'checkbox',
+    dependsOn: InterfaceStoredSettingsProps.isShowSignatureCounts,
+  },
+  {
+    prop: InterfaceStoredSettingsProps.signatureCountOreSites,
+    label: SignatureGroup.OreSite,
+    type: 'checkbox',
+    dependsOn: InterfaceStoredSettingsProps.isShowSignatureCounts,
+  },
+  {
+    prop: InterfaceStoredSettingsProps.signatureCountCombatSites,
+    label: SignatureGroup.CombatSite,
+    type: 'checkbox',
+    dependsOn: InterfaceStoredSettingsProps.isShowSignatureCounts,
+  },
+  {
+    prop: InterfaceStoredSettingsProps.signatureCountUnknown,
+    label: 'Unknown signatures',
+    type: 'checkbox',
+    dependsOn: InterfaceStoredSettingsProps.isShowSignatureCounts,
   },
 ];
 

@@ -26,6 +26,7 @@ import { InputText } from 'primereact/inputtext';
 import { useMapRootState } from '@/hooks/Mapper/mapRootProvider';
 import { WithChildren } from '@/hooks/Mapper/types/common.ts';
 import { ShipMassTemplate } from '@/hooks/Mapper/types/options.ts';
+import { STORED_INTERFACE_DEFAULT_VALUES } from '@/hooks/Mapper/mapRootProvider/constants.ts';
 
 type SettingValue = boolean | string | Record<string, string> | ShipMassTemplate[];
 
@@ -76,6 +77,7 @@ export const MapSettingsProvider = ({ children }: WithChildren) => {
   const mergedSettings: UserSettings = useMemo(() => {
     return {
       ...userRemoteSettings,
+      ...STORED_INTERFACE_DEFAULT_VALUES,
       ...interfaceSettings,
     };
   }, [userRemoteSettings, interfaceSettings]);

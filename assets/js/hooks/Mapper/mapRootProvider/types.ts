@@ -30,6 +30,13 @@ export type InterfaceStoredSettings = {
   isThickConnections: boolean;
   isShowUnsplashedSignatures: boolean;
   isShowSignatureCounts: boolean;
+  signatureCountWormholes: boolean;
+  signatureCountRelicSites: boolean;
+  signatureCountDataSites: boolean;
+  signatureCountGasSites: boolean;
+  signatureCountOreSites: boolean;
+  signatureCountCombatSites: boolean;
+  signatureCountUnknown: boolean;
   isShowBackgroundPattern: boolean;
   isSoftBackground: boolean;
   theme: AvailableThemes;

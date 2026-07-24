@@ -9,9 +9,10 @@ import { TooltipPosition, WdTooltipWrapper } from '@/hooks/Mapper/components/ui-
 
 type SignatureCountsProps = {
   signatures: SystemSignature[];
+  enabledGroups: SignatureGroup[];
 };
 
-export const getSignatureCounts = (signatures: SystemSignature[]) => {
+export const getSignatureCounts = (signatures: SystemSignature[], enabledGroups: SignatureGroup[] = GROUPS_LIST) => {
   const counts = new Map<SignatureGroup, number>();
 
   signatures.forEach(signature => {
@@ -22,12 +23,12 @@ export const getSignatureCounts = (signatures: SystemSignature[]) => {
 
   return GROUPS_LIST.flatMap(group => {
     const count = counts.get(group) ?? 0;
-    return count > 0 ? [{ group, count }] : [];
+    return count > 0 && enabledGroups.includes(group) ? [{ group, count }] : [];
   });
 };
 
-export const SignatureCounts = ({ signatures }: SignatureCountsProps) => {
-  const counts = useMemo(() => getSignatureCounts(signatures), [signatures]);
+export const SignatureCounts = ({ signatures, enabledGroups }: SignatureCountsProps) => {
+  const counts = useMemo(() => getSignatureCounts(signatures, enabledGroups), [enabledGroups, signatures]);
 
   if (counts.length === 0) return null;
 

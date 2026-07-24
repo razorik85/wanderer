@@ -171,16 +171,22 @@ export const SolarSystemNodeDefault = memo((props: NodeProps<MapSolarSystemType>
 
       {nodeVars.visible && (
         <>
-          {nodeVars.isShowSignatureCounts && nodeVars.systemSignatures.length > 0 && (
+          {nodeVars.isShowSignatureCounts &&
+            nodeVars.signatureCountGroups.length > 0 &&
+            nodeVars.systemSignatures.length > 0 && (
             <div className={classes.SignatureCounts}>
-              <SignatureCounts signatures={nodeVars.systemSignatures} />
+              <SignatureCounts
+                signatures={nodeVars.systemSignatures}
+                enabledGroups={nodeVars.signatureCountGroups}
+              />
             </div>
           )}
 
           {nodeVars.unsplashedLeft.length > 0 && (
             <div
               className={clsx(classes.Unsplashed, {
-                [classes.UnsplashedWithCounts]: nodeVars.isShowSignatureCounts,
+                [classes.UnsplashedWithCounts]:
+                  nodeVars.isShowSignatureCounts && nodeVars.signatureCountGroups.length > 0,
               })}
             >
               <UnsplashedSignatureColumn
@@ -193,7 +199,8 @@ export const SolarSystemNodeDefault = memo((props: NodeProps<MapSolarSystemType>
           {nodeVars.unsplashedRight.length > 0 && (
             <div
               className={clsx(classes.Unsplashed, classes['Unsplashed--right'], {
-                [classes.UnsplashedWithCounts]: nodeVars.isShowSignatureCounts,
+                [classes.UnsplashedWithCounts]:
+                  nodeVars.isShowSignatureCounts && nodeVars.signatureCountGroups.length > 0,
               })}
             >
               <UnsplashedSignatureColumn

@@ -9,7 +9,14 @@ import { Regions, REGIONS_MAP, SPACE_TO_CLASS } from '@/hooks/Mapper/constants';
 import { isWormholeSpace } from '@/hooks/Mapper/components/map/helpers/isWormholeSpace';
 import { getSystemClassStyles } from '@/hooks/Mapper/components/map/helpers';
 import { sortWHClasses } from '@/hooks/Mapper/helpers';
-import { CharacterTypeRaw, OutCommand, PingType, SystemSignature, WormholeDataRaw } from '@/hooks/Mapper/types';
+import {
+  CharacterTypeRaw,
+  OutCommand,
+  PingType,
+  SignatureGroup,
+  SystemSignature,
+  WormholeDataRaw,
+} from '@/hooks/Mapper/types';
 import { useUnsplashedSignatures } from './useUnsplashedSignatures';
 import { useSystemName } from './useSystemName';
 import { LabelInfo, useLabelsInfo } from './useLabelsInfo';
@@ -48,6 +55,7 @@ export interface SolarSystemNodeVars {
   unsplashedRight: Array<SystemSignature>;
   systemSignatures: Array<SystemSignature>;
   isShowSignatureCounts: boolean;
+  signatureCountGroups: SignatureGroup[];
   wormholesData: Record<string, WormholeDataRaw>;
   isThickConnections: boolean;
   isRally: boolean;
@@ -95,7 +103,17 @@ export const useSolarSystemNode = (props: NodeProps<MapSolarSystemType>): SolarS
     constellation_name,
   } = systemStaticInfo;
 
-  const { isShowUnsplashedSignatures, isShowSignatureCounts } = interfaceSettings;
+  const {
+    isShowUnsplashedSignatures,
+    isShowSignatureCounts,
+    signatureCountWormholes = true,
+    signatureCountRelicSites = true,
+    signatureCountDataSites = true,
+    signatureCountGasSites = true,
+    signatureCountOreSites = true,
+    signatureCountCombatSites = true,
+    signatureCountUnknown = true,
+  } = interfaceSettings;
   const isTempSystemNameEnabled = useMapGetOption('show_temp_system_name') === 'true';
   const isShowLinkedSigId = useMapGetOption('show_linked_signature_id') === 'true';
   const isShowLinkedSigIdTempName = useMapGetOption('show_linked_signature_id_temp_name') === 'true';
@@ -169,6 +187,28 @@ export const useSolarSystemNode = (props: NodeProps<MapSolarSystemType>): SolarS
 
   const { unsplashedLeft, unsplashedRight } = useUnsplashedSignatures(systemSigs, isShowUnsplashedSignatures);
 
+  const signatureCountGroups = useMemo(
+    () =>
+      [
+        signatureCountGasSites && SignatureGroup.GasSite,
+        signatureCountRelicSites && SignatureGroup.RelicSite,
+        signatureCountDataSites && SignatureGroup.DataSite,
+        signatureCountOreSites && SignatureGroup.OreSite,
+        signatureCountCombatSites && SignatureGroup.CombatSite,
+        signatureCountWormholes && SignatureGroup.Wormhole,
+        signatureCountUnknown && SignatureGroup.CosmicSignature,
+      ].filter((group): group is SignatureGroup => Boolean(group)),
+    [
+      signatureCountCombatSites,
+      signatureCountDataSites,
+      signatureCountGasSites,
+      signatureCountOreSites,
+      signatureCountRelicSites,
+      signatureCountUnknown,
+      signatureCountWormholes,
+    ],
+  );
+
   const hubsAsStrings = useMemo(() => hubs.map(item => item.toString()), [hubs]);
 
   const isRally = useMemo(
@@ -215,6 +255,7 @@ export const useSolarSystemNode = (props: NodeProps<MapSolarSystemType>): SolarS
     unsplashedRight,
     systemSignatures: systemSigs,
     isShowSignatureCounts,
+    signatureCountGroups,
     wormholesData,
     isThickConnections,
     classTitle: class_title,
