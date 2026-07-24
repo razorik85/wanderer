@@ -1,5 +1,9 @@
 import { useMemo } from 'react';
-import { GROUPS, GROUPS_LIST } from '@/hooks/Mapper/components/mapInterface/widgets/SystemSignatures/constants.ts';
+import {
+  getGroupIdByRawGroup,
+  GROUPS,
+  GROUPS_LIST,
+} from '@/hooks/Mapper/components/mapInterface/widgets/SystemSignatures/constants.ts';
 import { SignatureGroup, SystemSignature } from '@/hooks/Mapper/types';
 import { TooltipPosition, WdTooltipWrapper } from '@/hooks/Mapper/components/ui-kit';
 
@@ -11,8 +15,9 @@ export const getSignatureCounts = (signatures: SystemSignature[]) => {
   const counts = new Map<SignatureGroup, number>();
 
   signatures.forEach(signature => {
-    if (signature.deleted || !GROUPS_LIST.includes(signature.group)) return;
-    counts.set(signature.group, (counts.get(signature.group) ?? 0) + 1);
+    const group = getGroupIdByRawGroup(signature.group);
+    if (signature.deleted || !group || !GROUPS_LIST.includes(group)) return;
+    counts.set(group, (counts.get(group) ?? 0) + 1);
   });
 
   return GROUPS_LIST.flatMap(group => {

@@ -86,6 +86,7 @@ export const MapWrapper = () => {
   const [openCustomLabel, setOpenCustomLabel] = useState<string | null>(null);
   const [openAddSystem, setOpenAddSystem] = useState<XYPosition | null>(null);
   const [selectedConnection, setSelectedConnection] = useState<SolarSystemConnection | null>(null);
+  const signatureCountsLoadedRef = useRef(false);
 
   useEffect(() => {
     if (selectedConnection && !connections.some(connection => connection.id === selectedConnection.id)) {
@@ -289,15 +290,31 @@ export const MapWrapper = () => {
 
   useEffect(() => {
     const { systemSignatures, systems } = ref.current;
-    if (
-      (!isShowUnsplashedSignatures && !isShowSignatureCounts) ||
-      Object.keys(systemSignatures).length !== 0 ||
-      systems?.length === 0
-    ) {
+
+    if (!isShowSignatureCounts) {
+      signatureCountsLoadedRef.current = false;
+    }
+
+    if (systems?.length === 0) {
       return;
     }
 
-    outCommand({ type: OutCommand.loadSignatures, data: {} });
+    const needsFullSignatureData = isShowSignatureCounts && !signatureCountsLoadedRef.current;
+    const needsUnsplashedData = isShowUnsplashedSignatures && Object.keys(systemSignatures).length === 0;
+
+    if (!needsFullSignatureData && !needsUnsplashedData) {
+      return;
+    }
+
+    if (needsFullSignatureData) {
+      signatureCountsLoadedRef.current = true;
+    }
+
+    outCommand({ type: OutCommand.loadSignatures, data: {} }).catch(() => {
+      if (needsFullSignatureData) {
+        signatureCountsLoadedRef.current = false;
+      }
+    });
   }, [isShowSignatureCounts, isShowUnsplashedSignatures, systems]);
 
   const { showMinimap, minimapPosition, minimapClasses } = useMemo(() => {
