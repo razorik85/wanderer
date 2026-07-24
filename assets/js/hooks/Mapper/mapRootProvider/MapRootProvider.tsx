@@ -114,6 +114,7 @@ export enum InterfaceStoredSettingsProps {
   isShowKSpace = 'isShowKSpace',
   isThickConnections = 'isThickConnections',
   isShowUnsplashedSignatures = 'isShowUnsplashedSignatures',
+  isShowSignatureCounts = 'isShowSignatureCounts',
   isShowBackgroundPattern = 'isShowBackgroundPattern',
   isSoftBackground = 'isSoftBackground',
   theme = 'theme',

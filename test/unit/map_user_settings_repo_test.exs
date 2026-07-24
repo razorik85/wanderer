@@ -4,7 +4,7 @@ defmodule WandererApp.MapUserSettingsRepoTest do
   alias WandererApp.MapUserSettingsRepo
 
   test "adds an empty personal mass template list to existing user settings" do
-    assert {:ok, %{"mass_templates" => []}} =
+    assert {:ok, %{"mass_templates" => [], "mass_tracking_enabled" => true}} =
              MapUserSettingsRepo.to_form_data(%{
                settings: Jason.encode!(%{"select_on_spash" => true})
              })
@@ -20,9 +20,16 @@ defmodule WandererApp.MapUserSettingsRepoTest do
       }
     ]
 
-    assert {:ok, %{"mass_templates" => ^templates}} =
+    assert {:ok, %{"mass_templates" => ^templates, "mass_tracking_enabled" => true}} =
              MapUserSettingsRepo.to_form_data(%{
                settings: Jason.encode!(%{"mass_templates" => templates})
+             })
+  end
+
+  test "keeps a user's disabled mass tracking preference" do
+    assert {:ok, %{"mass_tracking_enabled" => false}} =
+             MapUserSettingsRepo.to_form_data(%{
+               settings: Jason.encode!(%{"mass_tracking_enabled" => false})
              })
   end
 end

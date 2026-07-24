@@ -18,6 +18,7 @@ import { Tag } from 'primereact/tag';
 import { LocalCounter } from '@/hooks/Mapper/components/map/components/LocalCounter';
 import { KillsCounter } from '@/hooks/Mapper/components/map/components/KillsCounter';
 import { useLocalCounter } from '@/hooks/Mapper/components/hooks/useLocalCounter.ts';
+import { SignatureCounts } from '@/hooks/Mapper/components/map/components/SignatureCounts';
 
 // let render = 0;
 export const SolarSystemNodeDefault = memo((props: NodeProps<MapSolarSystemType>) => {
@@ -170,8 +171,18 @@ export const SolarSystemNodeDefault = memo((props: NodeProps<MapSolarSystemType>
 
       {nodeVars.visible && (
         <>
+          {nodeVars.isShowSignatureCounts && nodeVars.systemSignatures.length > 0 && (
+            <div className={classes.SignatureCounts}>
+              <SignatureCounts signatures={nodeVars.systemSignatures} />
+            </div>
+          )}
+
           {nodeVars.unsplashedLeft.length > 0 && (
-            <div className={classes.Unsplashed}>
+            <div
+              className={clsx(classes.Unsplashed, {
+                [classes.UnsplashedWithCounts]: nodeVars.isShowSignatureCounts,
+              })}
+            >
               <UnsplashedSignatureColumn
                 signatures={nodeVars.unsplashedLeft}
                 wormholesData={nodeVars.wormholesData}
@@ -180,7 +191,11 @@ export const SolarSystemNodeDefault = memo((props: NodeProps<MapSolarSystemType>
           )}
 
           {nodeVars.unsplashedRight.length > 0 && (
-            <div className={clsx(classes.Unsplashed, classes['Unsplashed--right'])}>
+            <div
+              className={clsx(classes.Unsplashed, classes['Unsplashed--right'], {
+                [classes.UnsplashedWithCounts]: nodeVars.isShowSignatureCounts,
+              })}
+            >
               <UnsplashedSignatureColumn
                 signatures={nodeVars.unsplashedRight}
                 wormholesData={nodeVars.wormholesData}

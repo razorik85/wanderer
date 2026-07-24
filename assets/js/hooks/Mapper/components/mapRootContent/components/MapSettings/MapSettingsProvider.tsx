@@ -5,6 +5,7 @@ import {
   SetStateAction,
   useCallback,
   useContext,
+  useEffect,
   useMemo,
   useRef,
   useState,
@@ -33,6 +34,7 @@ type MapSettingsContextType = {
   updateSetting: (prop: keyof UserSettings, value: SettingValue) => Promise<void>;
   setUserRemoteSettings: Dispatch<SetStateAction<UserSettingsRemote>>;
   settings: UserSettings;
+  isRemoteReady: boolean;
 };
 
 const MapSettingsContext = createContext<MapSettingsContextType | undefined>(undefined);
@@ -46,6 +48,30 @@ export const MapSettingsProvider = ({ children }: WithChildren) => {
   const [userRemoteSettings, setUserRemoteSettings] = useState<UserSettingsRemote>({
     ...DEFAULT_REMOTE_SETTINGS,
   });
+  const [isRemoteReady, setIsRemoteReady] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+
+    outCommand<{ user_settings?: Partial<UserSettingsRemote> }>({
+      type: OutCommand.getUserSettings,
+      data: null,
+    })
+      .then(response => {
+        if (!active) return;
+        setUserRemoteSettings({
+          ...DEFAULT_REMOTE_SETTINGS,
+          ...(response.user_settings ?? {}),
+        });
+      })
+      .finally(() => {
+        if (active) setIsRemoteReady(true);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [outCommand]);
 
   const mergedSettings: UserSettings = useMemo(() => {
     return {
@@ -138,7 +164,13 @@ export const MapSettingsProvider = ({ children }: WithChildren) => {
 
   return (
     <MapSettingsContext.Provider
-      value={{ renderSettingItem, updateSetting: handleSettingChange, setUserRemoteSettings, settings: mergedSettings }}
+      value={{
+        renderSettingItem,
+        updateSetting: handleSettingChange,
+        setUserRemoteSettings,
+        settings: mergedSettings,
+        isRemoteReady,
+      }}
     >
       {children}
     </MapSettingsContext.Provider>

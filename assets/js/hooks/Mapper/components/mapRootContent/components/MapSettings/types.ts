@@ -14,6 +14,7 @@ export enum UserSettingsRemoteProps {
   system_custom_label_name = 'system_custom_label_name',
   bookmark_return_hole_ignore = 'bookmark_return_hole_ignore',
   bookmark_return_hole_symbol = 'bookmark_return_hole_symbol',
+  mass_tracking_enabled = 'mass_tracking_enabled',
   mass_templates = 'mass_templates',
 }
 
@@ -30,6 +31,7 @@ export type UserSettingsRemote = {
   system_custom_label_name: string;
   bookmark_return_hole_ignore: boolean;
   bookmark_return_hole_symbol: string;
+  mass_tracking_enabled: boolean;
   mass_templates: ShipMassTemplate[];
 };
 

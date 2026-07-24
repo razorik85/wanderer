@@ -245,6 +245,7 @@ defmodule WandererAppWeb.MapCoreEventHandler do
         "system_custom_label_name",
         "bookmark_return_hole_ignore",
         "bookmark_return_hole_symbol",
+        "mass_tracking_enabled",
         "mass_templates"
       ])
       |> Map.update("mass_templates", [], &sanitize_mass_templates/1)

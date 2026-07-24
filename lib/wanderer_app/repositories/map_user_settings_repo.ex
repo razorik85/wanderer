@@ -12,6 +12,7 @@ defmodule WandererApp.MapUserSettingsRepo do
     "system_custom_label_name" => "",
     "bookmark_return_hole_ignore" => false,
     "bookmark_return_hole_symbol" => "",
+    "mass_tracking_enabled" => true,
     "mass_templates" => []
   }
 

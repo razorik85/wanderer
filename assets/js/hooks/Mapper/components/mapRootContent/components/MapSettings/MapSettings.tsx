@@ -5,10 +5,7 @@ import { TabPanel, TabView } from 'primereact/tabview';
 import { useMapRootState } from '@/hooks/Mapper/mapRootProvider';
 import { OutCommand, UserPermission } from '@/hooks/Mapper/types';
 import { CONNECTIONS_CHECKBOXES_PROPS, SIGNATURES_CHECKBOXES_PROPS, SYSTEMS_CHECKBOXES_PROPS } from './constants.ts';
-import {
-  MapSettingsProvider,
-  useMapSettings,
-} from '@/hooks/Mapper/components/mapRootContent/components/MapSettings/MapSettingsProvider.tsx';
+import { useMapSettings } from '@/hooks/Mapper/components/mapRootContent/components/MapSettings/MapSettingsProvider.tsx';
 import { WidgetsSettings } from './components/WidgetsSettings';
 import { CommonSettings } from './components/CommonSettings';
 import { BookmarksSettings } from './components/BookmarksSettings';
@@ -125,9 +122,5 @@ export const MapSettingsComp = ({ visible, onHide }: MapSettingsProps) => {
 };
 
 export const MapSettings = (props: MapSettingsProps) => {
-  return (
-    <MapSettingsProvider>
-      <MapSettingsComp {...props} />
-    </MapSettingsProvider>
-  );
+  return <MapSettingsComp {...props} />;
 };

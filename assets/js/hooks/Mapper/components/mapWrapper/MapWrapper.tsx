@@ -38,9 +38,11 @@ import { PingType } from '@/hooks/Mapper/types/ping.ts';
 import type { PanelPosition } from '@reactflow/core';
 import { useHotkey } from '../../hooks/useHotkey';
 import { MINI_MAP_PLACEMENT_OFFSETS } from './constants.ts';
+import { useMapSettings } from '@/hooks/Mapper/components/mapRootContent/components/MapSettings/MapSettingsProvider.tsx';
 
 // TODO: INFO - this component needs for abstract work with Map instance
 export const MapWrapper = () => {
+  const { settings: userSettings, isRemoteReady } = useMapSettings();
   const {
     update,
     outCommand,
@@ -65,6 +67,7 @@ export const MapWrapper = () => {
     isThickConnections,
     isShowBackgroundPattern,
     isShowUnsplashedSignatures,
+    isShowSignatureCounts,
     isSoftBackground,
     theme,
     minimapPlacement,
@@ -93,6 +96,12 @@ export const MapWrapper = () => {
   const handleHidePassageMassDialog = useCallback(() => {
     update({ passageMassRequired: null });
   }, [update]);
+
+  useEffect(() => {
+    if (isRemoteReady && !userSettings.mass_tracking_enabled && passageMassRequired) {
+      update({ passageMassRequired: null });
+    }
+  }, [isRemoteReady, passageMassRequired, update, userSettings.mass_tracking_enabled]);
 
   const handleSavePassageMass = useCallback(
     async (mass: number, massStatus: MassState | null, connectionClosed: boolean) => {
@@ -280,12 +289,16 @@ export const MapWrapper = () => {
 
   useEffect(() => {
     const { systemSignatures, systems } = ref.current;
-    if (!isShowUnsplashedSignatures || Object.keys(systemSignatures).length !== 0 || systems?.length === 0) {
+    if (
+      (!isShowUnsplashedSignatures && !isShowSignatureCounts) ||
+      Object.keys(systemSignatures).length !== 0 ||
+      systems?.length === 0
+    ) {
       return;
     }
 
     outCommand({ type: OutCommand.loadSignatures, data: {} });
-  }, [isShowUnsplashedSignatures, systems]);
+  }, [isShowSignatureCounts, isShowUnsplashedSignatures, systems]);
 
   const { showMinimap, minimapPosition, minimapClasses } = useMemo(() => {
     const rawPlacement = minimapPlacement == null ? MiniMapPlacement.rightBottom : minimapPlacement;
@@ -349,7 +362,12 @@ export const MapWrapper = () => {
 
       <PassageMassDialog
         passage={passageMassRequired}
-        visible={passageMassRequired != null && linkSignatureToSystem == null}
+        visible={
+          isRemoteReady &&
+          userSettings.mass_tracking_enabled &&
+          passageMassRequired != null &&
+          linkSignatureToSystem == null
+        }
         allowConnectionClosed
         onHide={handleHidePassageMassDialog}
         onSave={handleSavePassageMass}

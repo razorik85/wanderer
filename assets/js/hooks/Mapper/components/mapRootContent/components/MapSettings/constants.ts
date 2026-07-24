@@ -15,6 +15,7 @@ export const DEFAULT_REMOTE_SETTINGS = {
   [UserSettingsRemoteProps.system_custom_label_name]: '',
   [UserSettingsRemoteProps.bookmark_return_hole_ignore]: false,
   [UserSettingsRemoteProps.bookmark_return_hole_symbol]: '',
+  [UserSettingsRemoteProps.mass_tracking_enabled]: true,
   [UserSettingsRemoteProps.mass_templates]: [],
 };
 
@@ -39,6 +40,7 @@ export const UserSettingsRemoteList = [
   UserSettingsRemoteProps.system_custom_label_name,
   UserSettingsRemoteProps.bookmark_return_hole_ignore,
   UserSettingsRemoteProps.bookmark_return_hole_symbol,
+  UserSettingsRemoteProps.mass_tracking_enabled,
   UserSettingsRemoteProps.mass_templates,
 ];
 
@@ -72,6 +74,11 @@ export const SIGNATURES_CHECKBOXES_PROPS: SettingsListItem[] = [
   {
     prop: InterfaceStoredSettingsProps.isShowUnsplashedSignatures,
     label: 'Show unsplashed signatures',
+    type: 'checkbox',
+  },
+  {
+    prop: InterfaceStoredSettingsProps.isShowSignatureCounts,
+    label: 'Show signature counts on systems',
     type: 'checkbox',
   },
 ];

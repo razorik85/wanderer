@@ -29,6 +29,7 @@ export type InterfaceStoredSettings = {
   isShowKSpace: boolean;
   isThickConnections: boolean;
   isShowUnsplashedSignatures: boolean;
+  isShowSignatureCounts: boolean;
   isShowBackgroundPattern: boolean;
   isSoftBackground: boolean;
   theme: AvailableThemes;

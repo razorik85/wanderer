@@ -17,11 +17,12 @@ import { Commands } from '@/hooks/Mapper/types';
 import { PingsInterface } from '@/hooks/Mapper/components/mapInterface/components';
 import { OldSettingsDialog } from '@/hooks/Mapper/components/mapRootContent/components/OldSettingsDialog.tsx';
 import { TopSearch } from '@/hooks/Mapper/components/mapRootContent/components/TopSearch';
+import { MapSettingsProvider } from '@/hooks/Mapper/components/mapRootContent/components/MapSettings/MapSettingsProvider.tsx';
 
 export interface MapRootContentProps {}
 
 // eslint-disable-next-line no-empty-pattern
-export const MapRootContent = ({}: MapRootContentProps) => {
+const MapRootContentInner = ({}: MapRootContentProps) => {
   const {
     storedSettings: { interfaceSettings, isReady, hasOldSettings },
     data,
@@ -105,3 +106,9 @@ export const MapRootContent = ({}: MapRootContentProps) => {
     </div>
   );
 };
+
+export const MapRootContent = (props: MapRootContentProps) => (
+  <MapSettingsProvider>
+    <MapRootContentInner {...props} />
+  </MapSettingsProvider>
+);

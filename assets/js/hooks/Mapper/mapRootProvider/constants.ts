@@ -17,6 +17,7 @@ export const STORED_INTERFACE_DEFAULT_VALUES: InterfaceStoredSettings = {
   isShowKSpace: false,
   isThickConnections: false,
   isShowUnsplashedSignatures: false,
+  isShowSignatureCounts: false,
   isShowBackgroundPattern: true,
   isSoftBackground: false,
   theme: AvailableThemes.default,

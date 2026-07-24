@@ -216,6 +216,7 @@
 
 .Unsplashed {
   position: absolute;
+  top: calc(var(--rf-node-height, 34px) + 3px);
   width: var(--rf-node-unsplashed-width, calc(50% - 4px));
   z-index: -1;
   display: flex;
@@ -248,6 +249,20 @@
       box-shadow: inset 4px -3px 4px rgba(0, 0, 0, 0.3);
     }
   }
+}
+
+.UnsplashedWithCounts {
+  top: calc(var(--rf-node-height, 34px) + 23px);
+}
+
+.SignatureCounts {
+  position: absolute;
+  top: calc(var(--rf-node-height, 34px) + 3px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  max-width: 190px;
+  white-space: nowrap;
 }
 
 .icon {

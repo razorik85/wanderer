@@ -46,6 +46,8 @@ export interface SolarSystemNodeVars {
   userCharacters: string[];
   unsplashedLeft: Array<SystemSignature>;
   unsplashedRight: Array<SystemSignature>;
+  systemSignatures: Array<SystemSignature>;
+  isShowSignatureCounts: boolean;
   wormholesData: Record<string, WormholeDataRaw>;
   isThickConnections: boolean;
   isRally: boolean;
@@ -93,7 +95,7 @@ export const useSolarSystemNode = (props: NodeProps<MapSolarSystemType>): SolarS
     constellation_name,
   } = systemStaticInfo;
 
-  const { isShowUnsplashedSignatures } = interfaceSettings;
+  const { isShowUnsplashedSignatures, isShowSignatureCounts } = interfaceSettings;
   const isTempSystemNameEnabled = useMapGetOption('show_temp_system_name') === 'true';
   const isShowLinkedSigId = useMapGetOption('show_linked_signature_id') === 'true';
   const isShowLinkedSigIdTempName = useMapGetOption('show_linked_signature_id_temp_name') === 'true';
@@ -211,6 +213,8 @@ export const useSolarSystemNode = (props: NodeProps<MapSolarSystemType>): SolarS
     charactersInSystem,
     unsplashedLeft,
     unsplashedRight,
+    systemSignatures: systemSigs,
+    isShowSignatureCounts,
     wormholesData,
     isThickConnections,
     classTitle: class_title,
