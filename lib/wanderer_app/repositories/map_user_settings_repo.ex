@@ -1,5 +1,6 @@
 defmodule WandererApp.MapUserSettingsRepo do
   use WandererApp, :repository
+  require Ash.Query
 
   @default_form_data %{
     "select_on_spash" => false,
