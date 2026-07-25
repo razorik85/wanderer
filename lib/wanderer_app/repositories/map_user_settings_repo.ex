@@ -144,7 +144,7 @@ defmodule WandererApp.MapUserSettingsRepo do
   defp list_by_user_id(user_id) do
     WandererApp.Api.MapUserSettings
     |> Ash.Query.new()
-    |> Ash.Query.filter(user_id == ^user_id)
+    |> Ash.Query.filter(user_id: user_id)
     |> Ash.read()
   end
 
