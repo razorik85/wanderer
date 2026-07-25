@@ -95,7 +95,10 @@ export const MapSettingsProvider = ({ children }: WithChildren) => {
       };
       await outCommand({
         type: OutCommand.updateUserSettings,
-        data: newRemoteSettings,
+        data: {
+          ...newRemoteSettings,
+          _changed_setting: prop,
+        },
       });
       setUserRemoteSettings(newRemoteSettings);
     } else {

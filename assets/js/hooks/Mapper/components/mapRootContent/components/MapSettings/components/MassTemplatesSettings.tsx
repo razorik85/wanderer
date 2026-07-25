@@ -92,7 +92,7 @@ export const MassTemplatesSettings = () => {
     setMessage(null);
     try {
       await updateSetting('mass_templates', templates);
-      setMessage('Your mass presets were saved for this map.');
+      setMessage('Your mass presets were saved for all maps.');
     } catch {
       setMessage('Could not save mass presets.');
     } finally {
@@ -106,7 +106,7 @@ export const MassTemplatesSettings = () => {
         <div className="text-sm font-medium text-stone-200">Personal ship mass presets</div>
         <div className="mt-1 text-xs text-stone-500">
           Add freely named fit or propulsion states. Values are entered in whole tonnes and are visible only to you on
-          this map.
+          all maps.
         </div>
       </div>
 

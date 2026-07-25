@@ -93,6 +93,70 @@ defmodule WandererApp.MapUserSettingsRepo do
     data
   end
 
+  def to_form_data_for_user(user_settings, user_id) do
+    with {:ok, form_data} <- to_form_data(user_settings) do
+      case Map.get(form_data, "mass_templates", []) do
+        [_ | _] ->
+          {:ok, form_data}
+
+        _ ->
+          {:ok, Map.put(form_data, "mass_templates", get_mass_templates_for_user(user_id))}
+      end
+    end
+  end
+
+  def sync_mass_templates_for_user(user_id, templates) when is_list(templates) do
+    case list_by_user_id(user_id) do
+      {:ok, settings_rows} ->
+        Enum.reduce_while(settings_rows, :ok, fn settings_row, :ok ->
+          settings =
+            settings_row.settings
+            |> decode_settings()
+            |> Map.put("mass_templates", templates)
+            |> Jason.encode!()
+
+          case WandererApp.Api.MapUserSettings.update_settings(settings_row, %{settings: settings}) do
+            {:ok, _} -> {:cont, :ok}
+            {:error, reason} -> {:halt, {:error, reason}}
+          end
+        end)
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  defp get_mass_templates_for_user(user_id) do
+    case list_by_user_id(user_id) do
+      {:ok, settings_rows} ->
+        Enum.find_value(settings_rows, [], fn settings_row ->
+          case Map.get(decode_settings(settings_row.settings), "mass_templates", []) do
+            [_ | _] = templates -> templates
+            _ -> nil
+          end
+        end)
+
+      _ ->
+        []
+    end
+  end
+
+  defp list_by_user_id(user_id) do
+    WandererApp.Api.MapUserSettings
+    |> Ash.Query.new()
+    |> Ash.Query.filter(user_id == ^user_id)
+    |> Ash.read()
+  end
+
+  defp decode_settings(settings) when is_binary(settings) do
+    case Jason.decode(settings) do
+      {:ok, decoded} when is_map(decoded) -> decoded
+      _ -> %{}
+    end
+  end
+
+  defp decode_settings(_), do: %{}
+
   def get_boolean_setting(settings, key, default \\ false) do
     settings
     |> Map.get(key, default)

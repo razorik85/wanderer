@@ -214,13 +214,14 @@ defmodule WandererAppWeb.MapCoreEventHandler do
         _,
         %{
           assigns: %{
-            map_user_settings: map_user_settings
+            map_user_settings: map_user_settings,
+            current_user: current_user
           }
         } = socket
       ) do
     {:ok, user_settings} =
       map_user_settings
-      |> WandererApp.MapUserSettingsRepo.to_form_data()
+      |> WandererApp.MapUserSettingsRepo.to_form_data_for_user(current_user.id)
 
     {:reply, %{user_settings: user_settings}, socket}
   end
@@ -228,9 +229,30 @@ defmodule WandererAppWeb.MapCoreEventHandler do
   def handle_ui_event(
         "update_user_settings",
         user_settings_form,
-        %{assigns: %{map_id: map_id, current_user: current_user}} = socket
+        %{
+          assigns: %{
+            map_id: map_id,
+            current_user: current_user,
+            map_user_settings: map_user_settings
+          }
+        } = socket
       ) do
-    settings =
+    changed_setting = Map.get(user_settings_form, "_changed_setting")
+
+    mass_templates =
+      if changed_setting == "mass_templates" do
+        sanitize_mass_templates(Map.get(user_settings_form, "mass_templates", []))
+      else
+        {:ok, current_settings} =
+          WandererApp.MapUserSettingsRepo.to_form_data_for_user(
+            map_user_settings,
+            current_user.id
+          )
+
+        Map.get(current_settings, "mass_templates", [])
+      end
+
+    user_settings_form =
       user_settings_form
       |> Map.take([
         "select_on_spash",
@@ -248,11 +270,27 @@ defmodule WandererAppWeb.MapCoreEventHandler do
         "mass_tracking_enabled",
         "mass_templates"
       ])
-      |> Map.update("mass_templates", [], &sanitize_mass_templates/1)
-      |> Jason.encode!()
+      |> Map.put("mass_templates", mass_templates)
+
+    settings = Jason.encode!(user_settings_form)
 
     {:ok, user_settings} =
       WandererApp.MapUserSettingsRepo.create_or_update(map_id, current_user.id, settings)
+
+    if changed_setting == "mass_templates" do
+      case WandererApp.MapUserSettingsRepo.sync_mass_templates_for_user(
+             current_user.id,
+             mass_templates
+           ) do
+        :ok ->
+          :ok
+
+        {:error, reason} ->
+          Logger.error(
+            "Failed to synchronize personal mass presets for user #{current_user.id}: #{inspect(reason)}"
+          )
+      end
+    end
 
     {:noreply, socket |> assign(map_user_settings: user_settings)}
   end
