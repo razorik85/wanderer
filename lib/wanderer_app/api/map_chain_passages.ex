@@ -77,8 +77,8 @@ defmodule WandererApp.Api.MapChainPassages do
 
     action :by_connection, {:array, :struct} do
       argument(:map_id, :string, allow_nil?: false)
-      argument(:from, :string, allow_nil?: false)
-      argument(:to, :string, allow_nil?: false)
+      argument(:from, :integer, allow_nil?: false)
+      argument(:to, :integer, allow_nil?: false)
       argument(:after, :utc_datetime, allow_nil?: false)
 
       run fn input, _context ->
