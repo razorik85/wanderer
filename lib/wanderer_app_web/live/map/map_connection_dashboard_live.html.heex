@@ -1,0 +1,259 @@
+<nav class="fixed top-0 z-100 px-6 pl-20 flex items-center justify-between w-full h-12 pointer-events-auto border-b border-stone-800 bg-opacity-70 bg-neutral-900">
+  <span class="w-full font-medium text-sm">
+    <.link navigate={~p"/#{@map_slug}"} class="text-neutral-100 hover:text-white">
+      {@map_name}
+    </.link>
+    <span class="text-stone-500 mx-1">/</span> Connection analytics
+  </span>
+
+  <div class="flex items-center gap-3">
+    <div class="join">
+      <.link
+        :for={period <- @periods}
+        patch={~p"/#{@map_slug}/statistics?period=#{period}"}
+        class={[
+          "btn btn-sm join-item rounded-none border-stone-700 bg-neutral-800 text-stone-300 hover:bg-neutral-700 hover:text-white",
+          classes("!bg-orange-500/20 !border-orange-500 !text-orange-300": @period == period)
+        ]}
+      >
+        {period}
+      </.link>
+    </div>
+    <button
+      id="refresh-connection-statistics"
+      phx-click="refresh"
+      class="btn btn-sm btn-square rounded-none border-stone-700 bg-neutral-800 hover:bg-neutral-700"
+      title="Refresh"
+    >
+      <.icon name="hero-arrow-path-solid" class="w-4 h-4" />
+    </button>
+  </div>
+</nav>
+
+<main class="pt-16 w-full h-full p-4 pl-20 pb-12 overflow-auto bg-stone-950">
+  <div class="max-w-[1600px] mx-auto flex flex-col gap-4">
+    <div class="border border-sky-900/70 bg-sky-950/30 px-4 py-3 text-sm text-sky-200 flex gap-3 items-start">
+      <.icon name="hero-information-circle-solid" class="w-5 h-5 shrink-0 mt-0.5" />
+      <div>
+        <p class="font-medium">Connection history is map-scoped and permission protected.</p>
+        <p class="text-xs text-sky-300/70 mt-1">
+          History is complete for connections created after tracking was enabled. Connections that were already active during rollout were backfilled; previously deleted connections cannot be reconstructed.
+        </p>
+      </div>
+    </div>
+
+    <.async_result :let={statistics} assign={@statistics}>
+      <:loading>
+        <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+          <div :for={_ <- 1..6} class="skeleton h-24 rounded-none"></div>
+        </div>
+        <div class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          <div class="skeleton h-80 rounded-none xl:col-span-2"></div>
+          <div class="skeleton h-80 rounded-none"></div>
+        </div>
+      </:loading>
+
+      <:failed :let={reason}>
+        <div class="border border-red-900 bg-red-950/30 p-5 text-red-300">
+          Connection analytics could not be loaded: {inspect(reason)}
+        </div>
+      </:failed>
+
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3">
+        <div class="border border-stone-800 bg-neutral-900/70 p-4">
+          <p class="text-xs uppercase tracking-wider text-stone-500">Connections</p>
+          <p class="text-2xl font-semibold text-white mt-2">
+            {format_number(statistics.summary.connections)}
+          </p>
+          <p class="text-xs text-stone-500 mt-1">opened in period</p>
+        </div>
+        <div class="border border-stone-800 bg-neutral-900/70 p-4">
+          <p class="text-xs uppercase tracking-wider text-stone-500">Active</p>
+          <p class="text-2xl font-semibold text-emerald-400 mt-2">
+            {format_number(statistics.summary.active)}
+          </p>
+          <p class="text-xs text-stone-500 mt-1">currently retained</p>
+        </div>
+        <div class="border border-stone-800 bg-neutral-900/70 p-4">
+          <p class="text-xs uppercase tracking-wider text-stone-500">Passages</p>
+          <p class="text-2xl font-semibold text-cyan-300 mt-2">
+            {format_number(statistics.summary.passages)}
+          </p>
+          <p class="text-xs text-stone-500 mt-1">linked jumps</p>
+        </div>
+        <div class="border border-stone-800 bg-neutral-900/70 p-4">
+          <p class="text-xs uppercase tracking-wider text-stone-500">Destinations</p>
+          <p class="text-2xl font-semibold text-white mt-2">
+            {format_number(statistics.summary.distinct_destinations)}
+          </p>
+          <p class="text-xs text-stone-500 mt-1">distinct systems</p>
+        </div>
+        <div class="border border-stone-800 bg-neutral-900/70 p-4">
+          <p class="text-xs uppercase tracking-wider text-stone-500">Avg. lifetime</p>
+          <p class="text-2xl font-semibold text-white mt-2">
+            {format_duration(statistics.summary.average_lifetime_seconds)}
+          </p>
+          <p class="text-xs text-stone-500 mt-1">closed connections</p>
+        </div>
+        <div class="border border-stone-800 bg-neutral-900/70 p-4">
+          <p class="text-xs uppercase tracking-wider text-stone-500">Collapsed</p>
+          <p class="text-2xl font-semibold text-orange-300 mt-2">
+            {format_number(statistics.summary.collapsed)}
+          </p>
+          <p class="text-xs text-stone-500 mt-1">
+            {percentage(statistics.summary.collapsed, statistics.summary.closed)} of closed
+          </p>
+        </div>
+      </div>
+
+      <div :if={statistics.summary.connections == 0} class="border border-stone-800 bg-neutral-900/50 p-10 text-center">
+        <.icon name="hero-chart-bar-square-solid" class="w-10 h-10 mx-auto text-stone-600" />
+        <p class="text-stone-300 mt-3">No wormhole connection history in this period yet.</p>
+        <p class="text-xs text-stone-500 mt-1">The dashboard will fill automatically as the map is used.</p>
+      </div>
+
+      <div :if={statistics.summary.connections > 0} class="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <section class="border border-stone-800 bg-neutral-900/50 xl:col-span-2">
+          <header class="px-4 py-3 border-b border-stone-800 flex items-center justify-between">
+            <div>
+              <h2 class="font-semibold text-stone-100">Top destinations</h2>
+              <p class="text-xs text-stone-500">Where newly discovered connections led most often</p>
+            </div>
+            <.icon name="hero-map-pin-solid" class="w-5 h-5 text-stone-500" />
+          </header>
+          <div class="overflow-x-auto">
+            <table class="table table-sm">
+              <thead>
+                <tr class="text-stone-500 border-stone-800">
+                  <th>System</th>
+                  <th>Class</th>
+                  <th class="text-right">Connections</th>
+                  <th class="text-right">Passages</th>
+                  <th class="text-right">Last seen (UTC)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr :for={destination <- statistics.destinations} class="border-stone-800/70 hover:bg-stone-800/40">
+                  <td>
+                    <span class="font-medium text-stone-100">
+                      {system_name(destination.name, destination.solar_system_id)}
+                    </span>
+                    <span class="block text-[11px] text-stone-600">{destination.solar_system_id}</span>
+                  </td>
+                  <td class="text-stone-400">
+                    {system_class(destination.class_title, destination.security)}
+                  </td>
+                  <td class="text-right font-semibold text-cyan-300">
+                    {format_number(destination.connections)}
+                  </td>
+                  <td class="text-right text-stone-300">{format_number(destination.passages)}</td>
+                  <td class="text-right text-stone-500 text-xs">
+                    {format_datetime(destination.last_seen_at)}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="border border-stone-800 bg-neutral-900/50">
+          <header class="px-4 py-3 border-b border-stone-800">
+            <h2 class="font-semibold text-stone-100">Wormhole types</h2>
+            <p class="text-xs text-stone-500">Recorded type distribution</p>
+          </header>
+          <div class="p-4 flex flex-col gap-4">
+            <div :for={type <- statistics.wormhole_types}>
+              <div class="flex justify-between text-sm mb-1.5">
+                <span class="text-stone-300">{wormhole_type(type.name)}</span>
+                <span class="text-stone-500">{format_number(type.count)}</span>
+              </div>
+              <div class="h-1.5 bg-stone-800 overflow-hidden">
+                <div
+                  class="h-full bg-cyan-500"
+                  style={"width: #{bar_width(type.count, statistics.wormhole_types)}%"}
+                >
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section :if={statistics.summary.connections > 0} class="border border-stone-800 bg-neutral-900/50">
+        <header class="px-4 py-3 border-b border-stone-800 flex items-center justify-between">
+          <div>
+            <h2 class="font-semibold text-stone-100">Most frequent routes</h2>
+            <p class="text-xs text-stone-500">Discovery direction, usage and average retained lifetime</p>
+          </div>
+          <.icon name="hero-arrows-right-left-solid" class="w-5 h-5 text-stone-500" />
+        </header>
+        <div class="overflow-x-auto">
+          <table class="table table-sm">
+            <thead>
+              <tr class="text-stone-500 border-stone-800">
+                <th>Route</th>
+                <th class="text-right">Connections</th>
+                <th class="text-right">Passages</th>
+                <th class="text-right">Avg. lifetime</th>
+                <th class="text-right">Last seen (UTC)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr :for={route <- statistics.routes} class="border-stone-800/70 hover:bg-stone-800/40">
+                <td>
+                  <div class="flex items-center gap-2 text-stone-200">
+                    <span>{system_name(route.source_name, route.source_id)}</span>
+                    <.icon name="hero-arrow-long-right-solid" class="w-5 h-5 text-orange-400" />
+                    <span class="font-medium">{system_name(route.target_name, route.target_id)}</span>
+                  </div>
+                </td>
+                <td class="text-right font-semibold text-cyan-300">{format_number(route.connections)}</td>
+                <td class="text-right text-stone-300">{format_number(route.passages)}</td>
+                <td class="text-right text-stone-400">{format_duration(route.average_lifetime_seconds)}</td>
+                <td class="text-right text-stone-500 text-xs">{format_datetime(route.last_seen_at)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <div :if={statistics.summary.connections > 0} class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <section class="border border-stone-800 bg-neutral-900/50">
+          <header class="px-4 py-3 border-b border-stone-800">
+            <h2 class="font-semibold text-stone-100">Lifecycle observations</h2>
+            <p class="text-xs text-stone-500">Observed mass-state transitions</p>
+          </header>
+          <div class="grid grid-cols-2 gap-3 p-4">
+            <div class="bg-stone-900 border border-stone-800 p-4">
+              <p class="text-xs text-stone-500">Reached reduced</p>
+              <p class="text-xl text-yellow-300 mt-1">{format_number(statistics.summary.reduced)}</p>
+            </div>
+            <div class="bg-stone-900 border border-stone-800 p-4">
+              <p class="text-xs text-stone-500">Reached critical</p>
+              <p class="text-xl text-red-300 mt-1">{format_number(statistics.summary.critical)}</p>
+            </div>
+          </div>
+        </section>
+
+        <section class="border border-stone-800 bg-neutral-900/50">
+          <header class="px-4 py-3 border-b border-stone-800">
+            <h2 class="font-semibold text-stone-100">Closure reasons</h2>
+            <p class="text-xs text-stone-500">Why retained connections disappeared from the map</p>
+          </header>
+          <div class="p-4 grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <div
+              :for={reason <- statistics.closure_reasons}
+              class="flex justify-between border border-stone-800 bg-stone-900 px-3 py-2 text-sm"
+            >
+              <span class="text-stone-400">{closure_reason(reason.reason)}</span>
+              <span class="font-semibold text-stone-200">{format_number(reason.count)}</span>
+            </div>
+            <p :if={statistics.closure_reasons == []} class="text-sm text-stone-500">
+              No closed connections in this period.
+            </p>
+          </div>
+        </section>
+      </div>
+    </.async_result>
+  </div>
+</main>

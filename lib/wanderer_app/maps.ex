@@ -362,4 +362,34 @@ defmodule WandererApp.Maps do
         {:error, error}
     end
   end
+
+  def check_user_can_view_connections(map_slug, current_user) do
+    WandererApp.MapRepo.get_by_slug_with_permissions(map_slug, current_user)
+    |> case do
+      {:ok,
+       %{
+         deleted: false,
+         user_permissions: user_permissions,
+         owner_id: owner_id
+       } = map} ->
+        permissions =
+          WandererApp.Permissions.get_map_permissions(
+            user_permissions,
+            owner_id,
+            current_user.characters |> Enum.map(& &1.id)
+          )
+
+        if permissions.view_connection do
+          {:ok, map}
+        else
+          {:error, :not_authorized}
+        end
+
+      {:ok, _map} ->
+        {:error, :not_found}
+
+      error ->
+        {:error, error}
+    end
+  end
 end

@@ -43,6 +43,16 @@
   </.link>
 
   <.link
+    :if={(@user_permissions || %{}) |> Map.get(:view_connection, false)}
+    id={"map-statistics-#{@map_slug}"}
+    navigate={~p"/#{@map_slug}/statistics?period=30D"}
+  >
+    <button class="h-8 w-8 hover:text-white" title="Connection analytics">
+      <.icon name="hero-chart-bar-square-solid" class="w-6 h-6" />
+    </button>
+  </.link>
+
+  <.link
     :if={(@user_permissions || %{}) |> Map.get(:delete_map, false)}
     id={"map-characters-#{@map_slug}"}
     navigate={~p"/#{@map_slug}/characters"}

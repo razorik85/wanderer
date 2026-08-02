@@ -566,6 +566,7 @@ defmodule WandererAppWeb.Router do
       live "/profile/subscribe", ProfileLive, :subscribe
       live "/:slug/audit", MapAuditLive, :index
       live "/:slug/characters", MapCharactersLive, :index
+      live "/:slug/statistics", MapConnectionDashboardLive, :index
       live "/:slug", MapLive, :index
     end
   end
