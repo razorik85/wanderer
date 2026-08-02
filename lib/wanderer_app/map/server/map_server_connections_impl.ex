@@ -193,12 +193,15 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
         %{
           solar_system_source_id: solar_system_source_id,
           solar_system_target_id: solar_system_target_id
-        } = _connection_info
+        } = connection_info
       ),
       do:
-        maybe_remove_connection(map_id, %{solar_system_id: solar_system_target_id}, %{
-          solar_system_id: solar_system_source_id
-        })
+        maybe_remove_connection(
+          map_id,
+          %{solar_system_id: solar_system_target_id},
+          %{solar_system_id: solar_system_source_id},
+          connection_info
+        )
 
   def get_connection_info(
         map_id,
@@ -546,7 +549,8 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
 
       delete_connection(map_id, %{
         solar_system_source_id: solar_system_source_id,
-        solar_system_target_id: solar_system_target_id
+        solar_system_target_id: solar_system_target_id,
+        closure_reason: "auto_cleanup"
       })
     end)
   end
@@ -815,17 +819,20 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
         wormhole_type = get_extra_info(extra_info, "wormhole_type", nil)
 
         {:ok, connection} =
-          WandererApp.MapConnectionRepo.create(%{
-            map_id: map_id,
-            solar_system_source: old_location.solar_system_id,
-            solar_system_target: location.solar_system_id,
-            type: connection_type,
-            ship_size_type: ship_size_type,
-            time_status: time_status,
-            mass_status: mass_status,
-            locked: locked,
-            wormhole_type: wormhole_type
-          })
+          WandererApp.MapConnectionRepo.create(
+            %{
+              map_id: map_id,
+              solar_system_source: old_location.solar_system_id,
+              solar_system_target: location.solar_system_id,
+              type: connection_type,
+              ship_size_type: ship_size_type,
+              time_status: time_status,
+              mass_status: mass_status,
+              locked: locked,
+              wormhole_type: wormhole_type
+            },
+            opened_by_character_id: character_id
+          )
 
         if connection_type == @connection_type_wormhole do
           set_start_time(map_id, connection.id, DateTime.utc_now())
@@ -1203,7 +1210,7 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
     end
   end
 
-  defp maybe_remove_connection(map_id, location, old_location)
+  defp maybe_remove_connection(map_id, location, old_location, close_info)
        when not is_nil(location) and not is_nil(old_location) and
               location.solar_system_id != old_location.solar_system_id do
     case WandererApp.Map.find_connection(
@@ -1212,7 +1219,14 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
            old_location.solar_system_id
          ) do
       {:ok, connection} when not is_nil(connection) ->
-        :ok = WandererApp.MapConnectionRepo.destroy(map_id, connection)
+        :ok =
+          WandererApp.MapConnectionRepo.destroy(
+            map_id,
+            connection,
+            closure_reason: Map.get(close_info, :closure_reason, "manual"),
+            closed_by_character_id: Map.get(close_info, :character_id),
+            closed_by_user_id: Map.get(close_info, :user_id)
+          )
 
         Impl.broadcast!(map_id, :remove_connections, [connection])
         map_id |> WandererApp.Map.remove_connection(connection)
@@ -1239,7 +1253,7 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
     end
   end
 
-  defp maybe_remove_connection(_map_id, _location, _old_location), do: :ok
+  defp maybe_remove_connection(_map_id, _location, _old_location, _close_info), do: :ok
 
   defp update_connection(
          map_id,

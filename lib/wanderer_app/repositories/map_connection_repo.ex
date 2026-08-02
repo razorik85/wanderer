@@ -27,10 +27,35 @@ defmodule WandererApp.MapConnectionRepo do
     end
   end
 
-  def create(connection), do: connection |> WandererApp.Api.MapConnection.create()
-  def create!(connection), do: connection |> WandererApp.Api.MapConnection.create!()
+  def create(connection, opts \\ []) do
+    case WandererApp.Api.MapConnection.create(connection) do
+      {:ok, created_connection} = result ->
+        WandererApp.MapConnectionHistoryRepo.annotate_open(
+          created_connection.id,
+          Keyword.get(opts, :opened_by_character_id)
+        )
 
-  def destroy(map_id, connection) when not is_nil(connection) do
+        result
+
+      error ->
+        error
+    end
+  end
+
+  def create!(connection, opts \\ []) do
+    created_connection = WandererApp.Api.MapConnection.create!(connection)
+
+    WandererApp.MapConnectionHistoryRepo.annotate_open(
+      created_connection.id,
+      Keyword.get(opts, :opened_by_character_id)
+    )
+
+    created_connection
+  end
+
+  def destroy(map_id, connection, opts \\ [])
+
+  def destroy(map_id, connection, opts) when not is_nil(connection) do
     {:ok, from_connections} =
       get_by_locations(map_id, connection.solar_system_source, connection.solar_system_target)
 
@@ -39,6 +64,11 @@ defmodule WandererApp.MapConnectionRepo do
 
     [from_connections ++ to_connections]
     |> List.flatten()
+    |> tap(fn connections ->
+      Enum.each(connections, fn item ->
+        WandererApp.MapConnectionHistoryRepo.prepare_close(item.id, opts)
+      end)
+    end)
     |> bulk_destroy!()
     |> case do
       :ok ->
@@ -50,9 +80,12 @@ defmodule WandererApp.MapConnectionRepo do
     end
   end
 
-  def destroy(_map_id, _connection), do: :ok
+  def destroy(_map_id, _connection, _opts), do: :ok
 
-  def destroy!(connection), do: connection |> WandererApp.Api.MapConnection.destroy!()
+  def destroy!(connection, opts \\ []) do
+    WandererApp.MapConnectionHistoryRepo.prepare_close(connection.id, opts)
+    WandererApp.Api.MapConnection.destroy!(connection)
+  end
 
   def bulk_destroy!(connections) do
     connections

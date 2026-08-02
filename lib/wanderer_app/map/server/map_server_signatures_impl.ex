@@ -96,7 +96,10 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
 
     ConnectionsImpl.delete_connection(map_id, %{
       solar_system_source_id: source_id,
-      solar_system_target_id: target_id
+      solar_system_target_id: target_id,
+      character_id: character_id,
+      user_id: user_id,
+      closure_reason: "collapsed"
     })
   end
 
@@ -270,7 +273,8 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
     if delete_conn? && is_active do
       ConnectionsImpl.delete_connection(map_id, %{
         solar_system_source_id: system.solar_system_id,
-        solar_system_target_id: sig.linked_system_id
+        solar_system_target_id: sig.linked_system_id,
+        closure_reason: "signature_removed"
       })
     end
 
@@ -313,7 +317,8 @@ defmodule WandererApp.Map.Server.SignaturesImpl do
             if delete_conn? and not is_active do
               ConnectionsImpl.delete_connection(map_id, %{
                 solar_system_source_id: system.solar_system_id,
-                solar_system_target_id: sig.linked_system_id
+                solar_system_target_id: sig.linked_system_id,
+                closure_reason: "signature_removed"
               })
             end
 

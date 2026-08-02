@@ -27,7 +27,8 @@ defmodule WandererApp.Api.MapChainPassages do
       :ship_name,
       :mass,
       :solar_system_source_id,
-      :solar_system_target_id
+      :solar_system_target_id,
+      :connection_history_id
     ]
 
     defaults [:create, :read, :destroy]
@@ -49,6 +50,7 @@ defmodule WandererApp.Api.MapChainPassages do
         :mass,
         :solar_system_source_id,
         :solar_system_target_id,
+        :connection_history_id,
         :map_id,
         :character_id
       ]
@@ -126,6 +128,7 @@ defmodule WandererApp.Api.MapChainPassages do
     attribute :mass_confirmed_at, :utc_datetime_usec
     attribute :solar_system_source_id, :integer
     attribute :solar_system_target_id, :integer
+    attribute :connection_history_id, :uuid
 
     create_timestamp(:inserted_at)
     update_timestamp(:updated_at)
@@ -144,6 +147,12 @@ defmodule WandererApp.Api.MapChainPassages do
 
     belongs_to :mass_confirmed_by, WandererApp.Api.User do
       source_attribute(:mass_confirmed_by_id)
+      allow_nil?(true)
+      attribute_writable?(true)
+    end
+
+    belongs_to :connection_history, WandererApp.Api.MapConnectionHistory do
+      source_attribute(:connection_history_id)
       allow_nil?(true)
       attribute_writable?(true)
     end

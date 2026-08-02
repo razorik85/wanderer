@@ -418,7 +418,10 @@ defmodule WandererApp.Map.Server.SystemsImpl do
           solar_system_target_id: connection.solar_system_target
         })
 
-        :ok = WandererApp.MapConnectionRepo.destroy(map_id, connection)
+        :ok =
+          WandererApp.MapConnectionRepo.destroy(map_id, connection,
+            closure_reason: "system_removed"
+          )
         :ok = WandererApp.Map.remove_connection(map_id, connection)
         Impl.broadcast!(map_id, :remove_connections, [connection])
       rescue

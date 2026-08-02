@@ -19,6 +19,7 @@ defmodule WandererApp.Api do
     resource WandererApp.Api.MapSolarSystemJumps
     resource WandererApp.Api.MapChainPassages
     resource WandererApp.Api.MapConnection
+    resource WandererApp.Api.MapConnectionHistory
     resource WandererApp.Api.MapState
     resource WandererApp.Api.MapSystem
     resource WandererApp.Api.MapSystemComment

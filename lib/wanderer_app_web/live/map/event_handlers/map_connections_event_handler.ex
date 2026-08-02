@@ -134,7 +134,10 @@ defmodule WandererAppWeb.MapConnectionsEventHandler do
     map_id
     |> WandererApp.Map.Server.delete_connection(%{
       solar_system_source_id: solar_system_source_id,
-      solar_system_target_id: solar_system_target_id
+      solar_system_target_id: solar_system_target_id,
+      character_id: main_character_id,
+      user_id: current_user_id,
+      closure_reason: "manual"
     })
 
     delete_connection_with_sigs =

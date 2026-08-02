@@ -561,7 +561,7 @@ defmodule WandererApp.Map do
 
       {:error, :already_exists} ->
         connection
-        |> WandererApp.MapConnectionRepo.destroy!()
+        |> WandererApp.MapConnectionRepo.destroy!(closure_reason: "duplicate_replaced")
 
         add_connections!(map, rest)
     end
