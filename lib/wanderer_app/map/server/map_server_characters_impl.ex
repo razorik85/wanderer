@@ -294,6 +294,7 @@ defmodule WandererApp.Map.Server.CharactersImpl do
         WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:station_id")
         WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:structure_id")
         WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:location_updated_at")
+        WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:state_hash")
 
         Impl.broadcast!(map_id, :character_removed, character)
 

@@ -86,6 +86,33 @@ defmodule WandererApp.Character.TrackerUpdateSettingsTest do
       assert state.track_ship
     end
 
+    test "clears stale per-map position state before tracking resumes", %{
+      character_id: character_id,
+      map_id: map_id
+    } do
+      stale_keys = [
+        "map:#{map_id}:character:#{character_id}:solar_system_id",
+        "map:#{map_id}:character:#{character_id}:station_id",
+        "map:#{map_id}:character:#{character_id}:structure_id",
+        "map:#{map_id}:character:#{character_id}:location_updated_at",
+        "map:#{map_id}:character:#{character_id}:state_hash"
+      ]
+
+      Enum.each(stale_keys, &WandererApp.Cache.insert(&1, :stale))
+      on_exit(fn -> Enum.each(stale_keys, &WandererApp.Cache.delete/1) end)
+
+      seed_state(character_id, %{
+        is_online: true,
+        track_location: false,
+        track_ship: false,
+        active_maps: []
+      })
+
+      {:ok, _state} = Tracker.update_settings(character_id, %{map_id: map_id, track: true})
+
+      assert Enum.all?(stale_keys, &(WandererApp.Cache.lookup!(&1) == nil))
+    end
+
     test "is idempotent when tracking is already active for the map", %{
       character_id: character_id,
       map_id: map_id

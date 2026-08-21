@@ -223,8 +223,7 @@ defmodule WandererApp.Kills.Client do
 
           # Don't reset retry count during health check failures
           if state.connected or state.connecting do
-            send(self(), {:disconnected, :health_check_failed})
-            %{state | connected: false, connecting: false, socket_pid: nil}
+            disconnect_for_health_reconnect(state)
           else
             # Already disconnected, just maintain state
             state
@@ -238,8 +237,7 @@ defmodule WandererApp.Kills.Client do
           new_state = %{state | last_health_reconnect_attempt: System.system_time(:millisecond)}
 
           if state.connected or state.connecting do
-            send(self(), {:disconnected, :health_check_failed})
-            %{new_state | connected: false, connecting: false, socket_pid: nil}
+            disconnect_for_health_reconnect(new_state)
           else
             # Already disconnected, trigger reconnect
             send(self(), :connect)
@@ -251,8 +249,7 @@ defmodule WandererApp.Kills.Client do
           new_state = %{state | retry_count: 0, last_retry_cycle_end: nil}
 
           if state.connected or state.connecting do
-            send(self(), {:disconnected, :health_check_failed})
-            %{new_state | connected: false, connecting: false, socket_pid: nil}
+            disconnect_for_health_reconnect(new_state)
           else
             # Already disconnected, trigger immediate reconnect with reset count
             send(self(), :connect)
@@ -578,12 +575,25 @@ defmodule WandererApp.Kills.Client do
   defp socket_alive?(nil), do: false
   defp socket_alive?(pid), do: Process.alive?(pid)
 
+  defp disconnect_for_health_reconnect(state) do
+    disconnect_socket(state.socket_pid)
+    send(self(), {:disconnected, :health_check_failed})
+
+    %{state | connected: false, connecting: false, socket_pid: nil}
+  end
+
   defp disconnect_socket(nil), do: :ok
 
   defp disconnect_socket(pid) when is_pid(pid) do
     if Process.alive?(pid) do
-      GenServer.stop(pid, :normal)
+      try do
+        GenServer.stop(pid, :normal, 5_000)
+      catch
+        :exit, _reason -> :ok
+      end
     end
+
+    :ok
   end
 
   defp schedule_health_check do

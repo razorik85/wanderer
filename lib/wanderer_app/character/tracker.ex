@@ -1047,6 +1047,8 @@ defmodule WandererApp.Character.Tracker do
       WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:solar_system_id")
       WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:station_id")
       WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:structure_id")
+      WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:location_updated_at")
+      WandererApp.Cache.delete("map:#{map_id}:character:#{character_id}:state_hash")
 
       WandererApp.Cache.take("character:#{character_id}:last_active_time")
 

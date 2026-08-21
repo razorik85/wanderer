@@ -178,16 +178,18 @@ defmodule WandererApp.Character.TrackerPool do
     Process.send_after(self(), :update_online, @update_online_interval)
 
     try do
-      characters
-      |> Task.async_stream(
-        fn character_id ->
-          WandererApp.Character.Tracker.update_online(character_id)
-        end,
+      results =
+        Task.async_stream(
+          characters,
+          fn character_id ->
+            WandererApp.Character.Tracker.update_online(character_id)
+          end,
         max_concurrency: @standard_concurrency,
         on_timeout: :kill_task,
-        timeout: :timer.seconds(5)
-      )
-      |> Enum.each(fn _result -> :ok end)
+          timeout: :timer.seconds(5)
+        )
+
+      consume_task_results(characters, results, :online, state.uuid)
     rescue
       e ->
         Logger.error("""
@@ -277,16 +279,18 @@ defmodule WandererApp.Character.TrackerPool do
     start_time = System.monotonic_time(:millisecond)
 
     try do
-      characters
-      |> Task.async_stream(
-        fn character_id ->
-          WandererApp.Character.Tracker.update_location(character_id)
-        end,
+      results =
+        Task.async_stream(
+          characters,
+          fn character_id ->
+            WandererApp.Character.Tracker.update_location(character_id)
+          end,
         max_concurrency: location_concurrency(),
         on_timeout: :kill_task,
-        timeout: :timer.seconds(5)
-      )
-      |> Enum.each(fn _result -> :ok end)
+          timeout: :timer.seconds(5)
+        )
+
+      consume_task_results(characters, results, :location, state.uuid)
 
       # Emit telemetry for location update performance
       duration = System.monotonic_time(:millisecond) - start_time
@@ -357,16 +361,18 @@ defmodule WandererApp.Character.TrackerPool do
       {:noreply, state}
     else
       try do
-        characters
-        |> Task.async_stream(
-          fn character_id ->
-            WandererApp.Character.Tracker.update_ship(character_id)
-          end,
+        results =
+          Task.async_stream(
+            characters,
+            fn character_id ->
+              WandererApp.Character.Tracker.update_ship(character_id)
+            end,
           max_concurrency: @standard_concurrency,
           on_timeout: :kill_task,
-          timeout: :timer.seconds(5)
-        )
-        |> Enum.each(fn _result -> :ok end)
+            timeout: :timer.seconds(5)
+          )
+
+        consume_task_results(characters, results, :ship, state.uuid)
       rescue
         e ->
           Logger.error("""
@@ -490,6 +496,27 @@ defmodule WandererApp.Character.TrackerPool do
     Process.send_after(self(), :update_wallet, @update_wallet_interval)
 
     {:noreply, state}
+  end
+
+  defp consume_task_results(characters, results, operation, pool_uuid) do
+    characters
+    |> Enum.zip(results)
+    |> Enum.each(fn
+      {_character_id, {:ok, _result}} ->
+        :ok
+
+      {character_id, {:exit, reason}} ->
+        Logger.error(
+          "[Tracker Pool] #{operation} task exited for character #{character_id}: " <>
+            inspect(reason, limit: 5, printable_limit: 300)
+        )
+
+        :telemetry.execute(
+          [:wanderer_app, :tracker_pool, :task_exit],
+          %{count: 1},
+          %{pool_uuid: pool_uuid, operation: operation, character_id: character_id}
+        )
+    end)
   end
 
   defp monitor_message_queue(state) do

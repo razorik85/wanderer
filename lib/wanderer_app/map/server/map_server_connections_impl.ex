@@ -216,7 +216,7 @@ defmodule WandererApp.Map.Server.ConnectionsImpl do
       solar_system_target_id
     )
     |> case do
-      {:ok, %{id: connection_id}} ->
+      {:ok, %{id: connection_id} = connection} ->
         connection_mark_eol_time = get_connection_mark_eol_time(map_id, connection_id, nil)
         locked_info = get_connection_locked_info(map_id, connection_id)
 
