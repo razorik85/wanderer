@@ -184,8 +184,8 @@ defmodule WandererApp.Character.TrackerPool do
           fn character_id ->
             WandererApp.Character.Tracker.update_online(character_id)
           end,
-        max_concurrency: @standard_concurrency,
-        on_timeout: :kill_task,
+          max_concurrency: @standard_concurrency,
+          on_timeout: :kill_task,
           timeout: :timer.seconds(5)
         )
 
@@ -285,8 +285,8 @@ defmodule WandererApp.Character.TrackerPool do
           fn character_id ->
             WandererApp.Character.Tracker.update_location(character_id)
           end,
-        max_concurrency: location_concurrency(),
-        on_timeout: :kill_task,
+          max_concurrency: location_concurrency(),
+          on_timeout: :kill_task,
           timeout: :timer.seconds(5)
         )
 
@@ -367,8 +367,8 @@ defmodule WandererApp.Character.TrackerPool do
             fn character_id ->
               WandererApp.Character.Tracker.update_ship(character_id)
             end,
-          max_concurrency: @standard_concurrency,
-          on_timeout: :kill_task,
+            max_concurrency: @standard_concurrency,
+            on_timeout: :kill_task,
             timeout: :timer.seconds(5)
           )
 
